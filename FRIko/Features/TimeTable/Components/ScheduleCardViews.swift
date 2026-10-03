@@ -40,7 +40,7 @@ struct ClassBlockView: View {
         .frame(width: width, height: height, alignment: .topLeading)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(isLive ? Color.black : Color.black.opacity(0.04))
+                .fill(isLive ? entry.subjectColor : Color.black.opacity(0.04))
         )
         .overlay(alignment: .leading) {
             Capsule()
