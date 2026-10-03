@@ -64,7 +64,7 @@ struct WeeklyTimetableView: View {
             .font(.system(size: 36, weight: .bold, design: .serif))
         }
         .padding(.horizontal, horizontalPadding + 8)
-        .padding(.top, 12)
+        .padding(.top, 18)
         .padding(.bottom, 20)
     }
     

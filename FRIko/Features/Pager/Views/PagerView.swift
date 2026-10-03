@@ -8,7 +8,7 @@ struct PagerView: View {
     private let pageCount = 3
 
     var body: some View {
-        ZStack(alignment: .bottom) {
+        ZStack(alignment: .topTrailing) {
             Color.black.ignoresSafeArea()
 
             ScrollView(.horizontal) {
@@ -38,7 +38,10 @@ struct PagerView: View {
             .scrollIndicators(.hidden)
             .ignoresSafeArea()
 
-            PageIndicator(count: pageCount, selection: $selectedTab)
+            PageIndicator(
+                titles: ["NASTAVITVE", "DANES", "TEDEN"],
+                selection: $selectedTab
+            )
         }
         .sensoryFeedback(.impact(weight: .light), trigger: selectedTab)
     }
@@ -99,26 +102,43 @@ extension View {
 }
 
 private struct PageIndicator: View {
-    let count: Int
+    let titles: [String]
     @Binding var selection: Int?
+
+    private let topGap: CGFloat = 28
+    private let trailingGap: CGFloat = 16
+
+    private var current: Int { selection ?? 0 }
 
     var body: some View {
         HStack(spacing: 8) {
-            ForEach(0..<count, id: \.self) { index in
-                let isActive = (selection ?? 0) == index
-                Capsule()
-                    .fill(.white.opacity(isActive ? 1 : 0.4))
-                    .frame(width: isActive ? 26 : 8, height: 8)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        withAnimation(.snappy) { selection = index }
-                    }
+            Text(titles.indices.contains(current) ? titles[current] : "")
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.4)
+                .id(current)
+                .transition(.opacity.combined(with: .offset(x: 6)))
+
+            HStack(spacing: 4) {
+                ForEach(titles.indices, id: \.self) { index in
+                    Capsule()
+                        .frame(width: index == current ? 18 : 5, height: 3)
+                        .opacity(index == current ? 1 : 0.35)
+                        .contentShape(Rectangle().inset(by: -10))
+                        .onTapGesture {
+                            withAnimation(.snappy(duration: 0.35)) {
+                                selection = index
+                            }
+                        }
+                }
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(.ultraThinMaterial, in: Capsule())
-        .padding(.bottom, 24)
-        .animation(.snappy, value: selection)
+        .foregroundStyle(.white)
+        .compositingGroup()
+        .blendMode(.difference)
+        .padding(.top, topGap)
+        .padding(.trailing, trailingGap)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+        .allowsHitTesting(true)
+        .animation(.snappy(duration: 0.35), value: current)
     }
 }
