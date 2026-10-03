@@ -12,7 +12,6 @@ struct TimetableEntry: Codable, Identifiable, Hashable {
     let teachers: [String]
     var dayOfWeek: DayOfWeek = .monday
     var ects: Int? { 6 }
-    var description: String? { "Opis predmeta in vsebina." }
     var lecturerEmail: String? { "predavatelj@fri.uni-lj.si" }
     var lecturer: String {
         teachers.joined(separator: ", ")
@@ -33,9 +32,7 @@ struct TimetableEntry: Codable, Identifiable, Hashable {
         let endMinute = totalMinutes % 60
         return String(format: "%02d:%02d", endHour, endMinute)
     }
-    var time: String {
-        "\(start) – \(end)"
-    }
+    var time: String {"\(start) – \(end)"}
     
     var subjectColor: Color {
         SubjectColorManager.shared.color(for: subject)

@@ -13,13 +13,6 @@ struct WeeklyTimetableView: View {
     
     private var hours: [Int] { Array(firstHour...lastHour) }
     
-    private struct Block: Identifiable {
-        let id = UUID()
-        let entry: TimetableEntry
-        let start: Double
-        var end: Double
-    }
-    
     var body: some View {
         ZStack {
             NavigationStack {
@@ -28,24 +21,51 @@ struct WeeklyTimetableView: View {
                     let colWidth = max(0, availableWidth / CGFloat(days.count))
                     
                     VStack(alignment: .leading, spacing: 0) {
-                        HeaderTitleView(title: "tedenski pregled", position: .center)
+                        titleSection
                         
                         header(colWidth: colWidth)
                         
                         ScrollView(.vertical, showsIndicators: false) {
-                            grid(colWidth: colWidth)
-                                .padding(.horizontal, horizontalPadding)
-                                .padding(.bottom, 140)
+                            TimelineView(.periodic(from: .now, by: 60)) { context in
+                                grid(colWidth: colWidth, date: context.date)
+                            }
+                            .padding(.horizontal, horizontalPadding)
+                            .padding(.bottom, 140)
                         }
                     }
                 }
-                .background(Color(.systemBackground))
+                .background(Color.white)
                 .toolbar(.hidden, for: .navigationBar)
             }
             
             bottomBlur
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                .allowsHitTesting(false)
         }
+        .preferredColorScheme(.light)
+    }
+    
+    private var titleSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(StudentStorage.shared.studentId ?? "-")
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .monospacedDigit()
+                .foregroundStyle(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Capsule().fill(Color(white: 0.1)))
+            
+            HStack(spacing: 0) {
+                Text("Tedenski ")
+                    .foregroundColor(.black)
+                Text("pregled")
+                    .foregroundColor(Color(white: 0.6))
+            }
+            .font(.system(size: 36, weight: .bold, design: .serif))
+        }
+        .padding(.horizontal, horizontalPadding + 8)
+        .padding(.top, 12)
+        .padding(.bottom, 20)
     }
     
     private var bottomBlur: some View {
@@ -60,7 +80,7 @@ struct WeeklyTimetableView: View {
                     )
                 )
             LinearGradient(
-                colors: [.clear, Color(.systemBackground).opacity(0.85)],
+                colors: [.clear, Color.white.opacity(0.9)],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -79,26 +99,22 @@ struct WeeklyTimetableView: View {
                     Text(day.rawValue.uppercased())
                         .font(.system(size: 10, weight: .semibold))
                         .tracking(0.6)
-                        .foregroundStyle(isToday ? Color.primary : Color.secondary)
+                        .foregroundStyle(isToday ? Color.black : Color(white: 0.6))
                     
                     Text("\(dayNumber(at: index))")
-                        .font(.system(size: 16, weight: isToday ? .semibold : .regular))
+                        .font(.system(size: 16, weight: isToday ? .medium : .light))
                         .monospacedDigit()
-                        .foregroundStyle(isToday ? Color(.systemBackground) : Color.primary)
+                        .foregroundStyle(isToday ? Color.white : Color.black)
                         .frame(width: 30, height: 30)
-                        .background(Circle().fill(isToday ? Color.primary : Color.clear))
+                        .background(Circle().fill(isToday ? Color.black : Color.clear))
                 }
                 .frame(width: colWidth)
             }
         }
         .padding(.horizontal, horizontalPadding)
         .padding(.bottom, 10)
+        .overlay(alignment: .bottom) { hairline }
         .frame(maxHeight: 55)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(Color(.separator).opacity(0.5))
-                .frame(height: 0.5)
-        }
     }
     
     private func dayNumber(at index: Int) -> Int {
@@ -110,20 +126,26 @@ struct WeeklyTimetableView: View {
         return cal.component(.day, from: date)
     }
     
-    private func grid(colWidth: CGFloat) -> some View {
+    private var hairline: some View {
+        Rectangle()
+            .fill(Color.black.opacity(0.18))
+            .frame(height: 0.5)
+    }
+    
+    private func grid(colWidth: CGFloat, date: Date) -> some View {
         ZStack(alignment: .topLeading) {
             VStack(spacing: 0) {
                 ForEach(hours, id: \.self) { hour in
                     ZStack(alignment: .topLeading) {
                         Rectangle()
-                            .fill(Color(.separator).opacity(0.35))
+                            .fill(Color.black.opacity(0.10))
                             .frame(height: 0.5)
                             .padding(.leading, timeWidth)
                         
                         Text(String(format: "%02d:00", hour))
-                            .font(.system(size: 10, weight: .regular))
+                            .font(.system(size: 10, weight: .light))
                             .monospacedDigit()
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color(white: 0.55))
                             .frame(width: timeWidth - 8, alignment: .trailing)
                             .offset(y: -6)
                     }
@@ -134,59 +156,72 @@ struct WeeklyTimetableView: View {
             HStack(alignment: .top, spacing: 0) {
                 Color.clear.frame(width: timeWidth)
                 ForEach(days) { day in
-                    dayColumn(day, colWidth: colWidth)
+                    dayColumn(day, colWidth: colWidth, date: date)
                 }
             }
             
-            nowIndicator(colWidth: colWidth)
+            nowIndicator(colWidth: colWidth, date: date)
         }
         .frame(width: timeWidth + colWidth * CGFloat(days.count), alignment: .topLeading)
         .padding(.top, 16)
     }
     
-    private func nowIndicator(colWidth: CGFloat) -> some View {
-        TimelineView(.periodic(from: .now, by: 60)) { context in
-            let cal = Calendar.current
-            let time = Double(cal.component(.hour, from: context.date))
-                + Double(cal.component(.minute, from: context.date)) / 60
+    @ViewBuilder
+    private func nowIndicator(colWidth: CGFloat, date: Date) -> some View {
+        let time = minutes(of: date)
+        
+        if let todayIndex = days.firstIndex(of: DayOfWeek.today()),
+           time >= Double(firstHour), time <= Double(lastHour + 1) {
+            let y = (time - Double(firstHour)) * rowHeight
+            let xStart = timeWidth + colWidth * CGFloat(todayIndex)
             
-            if let todayIndex = days.firstIndex(of: DayOfWeek.today()),
-               time >= Double(firstHour), time <= Double(lastHour + 1) {
-                let y = (time - Double(firstHour)) * rowHeight
-                let xStart = timeWidth + colWidth * CGFloat(todayIndex)
+            ZStack(alignment: .topLeading) {
+                Rectangle()
+                    .fill(Color.red)
+                    .frame(width: colWidth, height: 1)
+                    .offset(x: xStart, y: -0.5)
                 
-                ZStack(alignment: .topLeading) {
-                    Rectangle()
-                        .fill(Color.red)
-                        .frame(width: colWidth, height: 1)
-                        .offset(x: xStart, y: -0.5)
-                    
-                    Circle()
-                        .fill(Color.red)
-                        .frame(width: 7, height: 7)
-                        .offset(x: xStart - 3.5, y: -3.5)
-                }
-                .offset(y: y)
-                .allowsHitTesting(false)
+                Circle()
+                    .fill(Color.red)
+                    .frame(width: 7, height: 7)
+                    .offset(x: xStart - 3.5, y: -3.5)
             }
+            .offset(y: y)
+            .allowsHitTesting(false)
         }
     }
     
-    private func dayColumn(_ day: DayOfWeek, colWidth: CGFloat) -> some View {
-        ZStack(alignment: .topLeading) {
+    private func dayColumn(_ day: DayOfWeek, colWidth: CGFloat, date: Date) -> some View {
+        let now = minutes(of: date)
+        let isToday = day == DayOfWeek.today()
+        
+        return ZStack(alignment: .topLeading) {
             Color.clear.frame(width: colWidth, height: rowHeight * CGFloat(hours.count))
             
             ForEach(blocks(for: day)) { block in
+                let isLive = isToday && now >= block.start && now < block.end
+                
                 NavigationLink {
                     ClassDetailView(entry: block.entry, allEntries: viewModel.entries)
                 } label: {
-                    classBlock(block, width: max(0, colWidth - gap * 2))
+                    ClassBlockView(
+                        block: block,
+                        width: max(0, colWidth - gap * 2),
+                        rowHeight: rowHeight,
+                        gap: gap,
+                        isLive: isLive
+                    )
                 }
                 .buttonStyle(.plain)
                 .offset(x: gap, y: CGFloat(block.start - Double(firstHour)) * rowHeight + gap)
             }
         }
         .frame(width: colWidth)
+    }
+    
+    private func minutes(of date: Date) -> Double {
+        let c = Calendar.current.dateComponents([.hour, .minute], from: date)
+        return Double(c.hour ?? 0) + Double(c.minute ?? 0) / 60
     }
     
     private func timeRange(for entry: TimetableEntry) -> (start: Double, end: Double)? {
@@ -239,45 +274,5 @@ struct WeeklyTimetableView: View {
             result.append(item)
         }
         return result
-    }
-    
-    private func classBlock(_ block: Block, width: CGFloat) -> some View {
-        let entry = block.entry
-        let duration = block.end - block.start
-        let height = max(CGFloat(duration) * rowHeight - gap * 2, 24)
-        let isCompact = height < 46
-        
-        return VStack(alignment: .leading, spacing: 2) {
-            Text(entry.tag)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-            
-            if !isCompact {
-                Text(entry.classroom)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                
-                Text(entry.type)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-        }
-        .padding(.vertical, 6)
-        .padding(.horizontal, 8)
-        .frame(width: width, height: height, alignment: .topLeading)
-        .background(.primary.opacity(0.06))
-        .overlay(alignment: .leading) {
-            Capsule()
-                .fill(entry.subjectColor.gradient)
-                .frame(width: 2.5)
-                .padding(.vertical, 6)
-                .padding(.leading, 3)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }

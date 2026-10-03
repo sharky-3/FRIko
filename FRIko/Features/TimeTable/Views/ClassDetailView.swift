@@ -3,135 +3,121 @@ import SwiftUI
 struct ClassDetailView: View {
     let entry: TimetableEntry
     let allEntries: [TimetableEntry]
-    @State private var selectedTab: DetailTab = .overview
-    
-    enum DetailTab: String, CaseIterable {
-        case overview = "Pregled"
-        case grades = "Ocene"
-        case lectures = "Predavanja"
+
+    private var relatedEntries: [TimetableEntry] {
+        allEntries.filter { $0.subject == entry.subject }
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    header
+
+                    if !entry.lecturer.isEmpty {
+                        lecturerSection
+                            .padding(.top, 36)
+                    }
+
+                    Spacer(minLength: 48)
+
+                    scheduleSection
+                }
+                .frame(minHeight: proxy.size.height, alignment: .top)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
+            }
+            .scrollIndicators(.hidden)
+        }
+        .background(Color.white.ignoresSafeArea())
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .tint(.black)
+        .preferredColorScheme(.light)
     }
     
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(entry.subject)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                    if let ects = entry.ects {
-                        Text("\(ects) ECTS")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .padding(.horizontal)
-                
-                HStack(spacing: 4) {
-                    ForEach(DetailTab.allCases, id: \.self) { tab in
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                selectedTab = tab
-                            }
-                        } label: {
-                            Text(tab.rawValue)
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 20)
-                                        .fill(selectedTab == tab ? Color(.label) : Color(.systemGray6))
-                                )
-                                .foregroundStyle(selectedTab == tab ? Color(.systemBackground) : .secondary)
-                        }
-                    }
-                }
-                .padding(.horizontal)
-                
-                if selectedTab == .overview {
-                    if let description = entry.description {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Opis")
-                                .font(.headline)
-                                .fontWeight(.bold)
-                            Text(description)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.horizontal)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Predavatelj(i)")
-                            .font(.headline)
-                            .fontWeight(.bold)
-                        HStack(spacing: 12) {
-                            Text(entry.lecturer.prefix(2).uppercased())
-                                .font(.subheadline)
-                                .fontWeight(.bold)
-                                .foregroundStyle(.secondary)
-                                .frame(width: 44, height: 44)
-                                .background(Color(.systemGray5))
-                                .clipShape(Circle())
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(entry.lecturer)
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                if let email = entry.lecturerEmail {
-                                    Text(email)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-                    
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Urnik")
-                            .font(.headline)
-                            .fontWeight(.bold)
-                        let relatedEntries = allEntries.filter { $0.subject == entry.subject }
-                        VStack(spacing: 8) {
-                            ForEach(relatedEntries) { item in
-                                HStack(spacing: 0) {
-                                    RoundedRectangle(cornerRadius: 2)
-                                        .fill(item.subjectColor)
-                                        .frame(width: 3)
-                                        .padding(.vertical, 8)
-                                        .padding(.leading, 10)
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text("\(item.dayOfWeek.rawValue) \(item.time)")
-                                            .font(.caption)
-                                            .fontWeight(.medium)
-                                            .foregroundStyle(.secondary)
-                                        Text("\(item.type) • \(item.classroom)")
-                                            .font(.subheadline)
-                                            .fontWeight(.medium)
-                                    }
-                                    .padding(12)
-                                    Spacer()
-                                }
-                                .background(Color(.systemBackground))
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .shadow(color: Color.black.opacity(0.02), radius: 4, x: 0, y: 2)
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-                } else {
-                    VStack(alignment: .center, spacing: 10) {
-                        Text("Vsebina za \(selectedTab.rawValue.lowercased()) ni na voljo.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 40)
-                    }
-                }
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if let ects = entry.ects {
+                Text("\(ects) ECTS")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(Capsule().fill(Color(white: 0.1)))
             }
-            .padding(.vertical)
+
+            Text(entry.subject)
+                .font(.system(size: 36, weight: .bold, design: .serif))
+                .foregroundStyle(.black)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .background(Color(.systemGroupedBackground))
-        .navigationBarTitleDisplayMode(.inline)
+        .padding(.horizontal, 20)
+    }
+
+    private var lecturerSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(entry.lecturer)
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(.black)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 20)
+    }
+    private var scheduleSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            hairline
+            ForEach(relatedEntries) { item in
+                scheduleRow(item)
+                hairline
+            }
+        }
+    }
+
+    private func scheduleRow(_ item: TimetableEntry) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(item.dayOfWeek.rawValue)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.black)
+
+                Text(item.type)
+                    .font(.system(size: 14))
+                    .foregroundStyle(.black)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(item.classroom)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color(white: 0.55))
+                    .lineLimit(1)
+
+                Text(item.time)
+                    .font(.system(size: 22, weight: .light))
+                    .monospacedDigit()
+                    .foregroundStyle(.black)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+    }
+
+    private func sectionLabel(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 11, weight: .semibold))
+            .tracking(1)
+            .foregroundStyle(Color(white: 0.6))
+    }
+
+    private var hairline: some View {
+        Rectangle()
+            .fill(Color.black.opacity(0.18))
+            .frame(height: 0.5)
     }
 }

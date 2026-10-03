@@ -4,17 +4,15 @@ struct TimetableView: View {
 
     @ObservedObject var viewModel: TimetableViewModel
 
-    @State private var selectedDay: DayOfWeek = DayOfWeek.today()
-
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.white
-                    .ignoresSafeArea()
+                Color.white.ignoresSafeArea()
 
                 Group {
                     if viewModel.isLoading && viewModel.entries.isEmpty {
                         ProgressView("Nalaganje urnika...")
+                            .tint(.black)
                     } else if let errorMessage = viewModel.errorMessage,
                               viewModel.entries.isEmpty {
                         errorView(errorMessage)
@@ -23,321 +21,192 @@ struct TimetableView: View {
                     }
                 }
             }
-            .navigationTitle("URNIK")
-            .navigationBarTitleDisplayMode(.inline)
-            .refreshable {
-                await viewModel.refresh()
-            }
-            .task {
-                await viewModel.loadTimetable()
-                selectedDay = DayOfWeek.today()
-            }
+            .toolbar(.hidden, for: .navigationBar)
+            .refreshable { await viewModel.refresh() }
+            .task { await viewModel.loadTimetable() }
         }
         .preferredColorScheme(.light)
     }
 
     private var mainContentView: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+        let todayEntries = viewModel.entries
+            .filter { $0.dayOfWeek == DayOfWeek.today() }
+            .sorted { (timeRange(for: $0)?.start ?? 0) < (timeRange(for: $1)?.start ?? 0) }
 
-                studentHeader
+        return GeometryReader { proxy in
+            ScrollView {
+                TimelineView(.periodic(from: .now, by: 30)) { context in
+                    VStack(alignment: .leading, spacing: 0) {
+                        header(entries: todayEntries, date: context.date)
 
-                let todayEntries = viewModel.entries.filter {
-                    $0.dayOfWeek == DayOfWeek.today()
-                }
+                        Spacer(minLength: 48)
 
-                if !todayEntries.isEmpty {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Danes")
-                            .font(.system(size: 20, weight: .bold))
-                            .padding(.horizontal)
-
-                        VStack(spacing: 10) {
-                            ForEach(todayEntries) { entry in
-                                NavigationLink {
-                                    ClassDetailView(
-                                        entry: entry,
-                                        allEntries: viewModel.entries
-                                    )
-                                } label: {
-                                    TimetableCardView(entry: entry)
-                                }
-                                .buttonStyle(.plain)
-                            }
+                        if !todayEntries.isEmpty {
+                            classList(entries: todayEntries, date: context.date)
                         }
-                        .padding(.horizontal)
                     }
-                } else {
-                    emptyTodayView
+                    .frame(minHeight: proxy.size.height, alignment: .top)
+                    .padding(.top, 20)
                 }
             }
-            .padding(.vertical)
+            .scrollIndicators(.hidden)
         }
-        .scrollIndicators(.hidden)
     }
 
-    private var studentHeader: some View {
-        VStack(alignment: .leading, spacing: 14) {
+    private func header(entries: [TimetableEntry], date: Date) -> some View {
+        let current = currentClass(in: entries, at: date)
+        let entry = current ?? nextClass(in: entries, at: date)
 
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("ŠTUDENT")
-                        .font(
-                            .system(
-                                size: 10,
-                                weight: .semibold
-                            )
-                        )
-                        .foregroundStyle(.secondary)
+        return VStack(alignment: .leading, spacing: 20) {
+            Text(StudentStorage.shared.studentId ?? "-")
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .monospacedDigit()
+                .foregroundStyle(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Capsule().fill(Color(white: 0.1)))
 
-                    Text(StudentStorage.shared.studentId ?? "-")
-                        .font(
-                            .system(
-                                size: 22,
-                                weight: .bold,
-                                design: .rounded
-                            )
-                        )
-                        .foregroundStyle(.primary)
-                }
+            VStack(alignment: .leading, spacing: 10) {
+                Text(label(isLive: current != nil, hasEntry: entry != nil))
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1)
+                    .foregroundStyle(Color(white: 0.6))
 
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 3) {
-                    Text("FAKULTETA")
-                        .font(
-                            .system(
-                                size: 10,
-                                weight: .semibold
-                            )
-                        )
-                        .foregroundStyle(.secondary)
-
-                    Text("FRI • UL")
-                        .font(
-                            .system(
-                                size: 15,
-                                weight: .semibold
-                            )
-                        )
-                        .foregroundStyle(.primary)
-                }
-            }
-
-            currentClassCard
-        }
-        .padding(.horizontal)
-    }
-
-    private var currentClassCard: some View {
-        let current = currentClass
-
-        return VStack(alignment: .leading, spacing: 0) {
-
-            HStack {
-                Text(
-                    current == nil
-                    ? "TRENUTNO NIMAŠ POUKA"
-                    : "TRENUTNO IMAŠ"
-                )
-                .font(
-                    .system(
-                        size: 10,
-                        weight: .semibold
-                    )
-                )
-                .foregroundStyle(.secondary)
-
-                Spacer()
-
-                Circle()
-                    .fill(
-                        current == nil
-                        ? Color.gray.opacity(0.35)
-                        : Color.green
-                    )
-                    .frame(
-                        width: 7,
-                        height: 7
-                    )
-            }
-
-            if let entry = current {
-                VStack(alignment: .leading, spacing: 6) {
-
+                if let entry {
                     Text(entry.subject)
-                        .font(
-                            .system(
-                                size: 22,
-                                weight: .bold
-                            )
-                        )
-                        .foregroundStyle(.primary)
+                        .font(.system(size: 36, weight: .bold, design: .serif))
+                        .foregroundStyle(.black)
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text("\(entry.time) · \(entry.classroom) · \(entry.type)")
+                        .font(.system(size: 15))
+                        .foregroundStyle(Color(white: 0.45))
+                        .lineLimit(2)
+                } else {
+                    Text(entries.isEmpty ? "Danes nimaš predavanj." : "Za danes je konec.")
+                        .font(.system(size: 36, weight: .bold, design: .serif))
+                        .foregroundStyle(.black)
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+    }
+
+    private func label(isLive: Bool, hasEntry: Bool) -> String {
+        if isLive { return "TRENUTNO IMAŠ" }
+        return hasEntry ? "NASLEDNJI PREDMET" : "DANES"
+    }
+
+    private func classList(entries: [TimetableEntry], date: Date) -> some View {
+        let now = minutes(of: date)
+        let current = currentClass(in: entries, at: date)
+
+        return VStack(spacing: 0) {
+            hairline
+
+            ForEach(entries) { entry in
+                let range = timeRange(for: entry)
+                let isLive = entry.id == current?.id
+                let isPast = (range?.end ?? 0) <= now
+
+                NavigationLink {
+                    ClassDetailView(entry: entry, allEntries: viewModel.entries)
+                } label: {
+                    classRow(entry, start: range?.start, isLive: isLive)
+                        .opacity(isPast ? 0.35 : 1)
+                }
+                .buttonStyle(.plain)
+
+                hairline
+            }
+        }
+        .padding(.bottom, 8)
+    }
+
+    private func classRow(_ entry: TimetableEntry, start: Double?, isLive: Bool) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(entry.subject)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.black)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+
+                Text(entry.type)
+                    .font(.system(size: 14))
+                    .foregroundStyle(.black)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    Text(entry.classroom)
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color(white: 0.55))
                         .lineLimit(1)
 
-                    HStack(spacing: 6) {
-                        Text(entry.time)
-
-                        Text("•")
-
-                        Text(entry.classroom)
-
-                        Text("•")
-
-                        Text(entry.type)
-                    }
-                    .font(
-                        .system(
-                            size: 12,
-                            weight: .medium
-                        )
-                    )
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-
-                    if !entry.lecturer.isEmpty {
-                        Text(entry.lecturer)
-                            .font(
-                                .system(
-                                    size: 11,
-                                    weight: .regular
-                                )
-                            )
-                            .foregroundStyle(
-                                Color.secondary.opacity(0.85)
-                            )
-                            .lineLimit(1)
+                    if isLive {
+                        Text("ZDAJ")
+                            .font(.system(size: 9, weight: .bold))
+                            .tracking(0.6)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(Color.black))
                     }
                 }
-                .padding(.top, 12)
-            } else if let next = nextClass {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("Naslednjič")
-                        .font(
-                            .system(
-                                size: 11,
-                                weight: .medium
-                            )
-                        )
-                        .foregroundStyle(.secondary)
 
-                    Text(next.subject)
-                        .font(
-                            .system(
-                                size: 18,
-                                weight: .semibold
-                            )
-                        )
-
-                    Text(
-                        "\(next.time) • \(next.classroom)"
-                    )
-                    .font(
-                        .system(
-                            size: 12,
-                            weight: .medium
-                        )
-                    )
-                    .foregroundStyle(.secondary)
-                }
-                .padding(.top, 10)
+                Text(start.map(formatted) ?? entry.time)
+                    .font(.system(size: 28, weight: .light))
+                    .monospacedDigit()
+                    .foregroundStyle(.black)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(
-                cornerRadius: 18,
-                style: .continuous
-            )
-            .fill(Color.black.opacity(0.035))
-        )
-        .overlay(
-            RoundedRectangle(
-                cornerRadius: 18,
-                style: .continuous
-            )
-            .stroke(
-                Color.black.opacity(0.06),
-                lineWidth: 0.8
-            )
-        )
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .contentShape(Rectangle())
     }
 
-    private var currentClass: TimetableEntry? {
-        let entries = viewModel.entries.filter {
-            $0.dayOfWeek == DayOfWeek.today()
-        }
+    private var hairline: some View {
+        Rectangle()
+            .fill(Color.black.opacity(0.18))
+            .frame(height: 0.5)
+    }
 
-        let now = Calendar.current.dateComponents(
-            [.hour, .minute],
-            from: Date()
-        )
+    private func minutes(of date: Date) -> Double {
+        let c = Calendar.current.dateComponents([.hour, .minute], from: date)
+        return Double(c.hour ?? 0) + Double(c.minute ?? 0) / 60
+    }
 
-        guard let hour = now.hour,
-              let minute = now.minute else {
-            return nil
-        }
+    private func formatted(_ value: Double) -> String {
+        let h = Int(value)
+        let m = Int(((value - Double(h)) * 60).rounded())
+        return String(format: "%02d:%02d", h, m)
+    }
 
-        let currentTime = Double(hour) + Double(minute) / 60
-
+    private func currentClass(in entries: [TimetableEntry], at date: Date) -> TimetableEntry? {
+        let now = minutes(of: date)
         return entries.first {
-            guard let range = timeRange(for: $0) else {
-                return false
-            }
-
-            return currentTime >= range.start &&
-                   currentTime < range.end
+            guard let r = timeRange(for: $0) else { return false }
+            return now >= r.start && now < r.end
         }
     }
 
-    private var nextClass: TimetableEntry? {
-        let entries = viewModel.entries
-            .filter {
-                $0.dayOfWeek == DayOfWeek.today()
-            }
-            .compactMap { entry -> (TimetableEntry, Double)? in
-                guard let range = timeRange(for: entry) else {
-                    return nil
-                }
-
-                return (entry, range.start)
-            }
-            .sorted {
-                $0.1 < $1.1
-            }
-
-        let now = Calendar.current.dateComponents(
-            [.hour, .minute],
-            from: Date()
-        )
-
-        guard let hour = now.hour,
-              let minute = now.minute else {
-            return entries.first?.0
-        }
-
-        let currentTime =
-            Double(hour)
-            + Double(minute) / 60
-
+    private func nextClass(in entries: [TimetableEntry], at date: Date) -> TimetableEntry? {
+        let now = minutes(of: date)
         return entries.first {
-            $0.1 > currentTime
-        }?.0
+            guard let r = timeRange(for: $0) else { return false }
+            return r.start > now
+        }
     }
 
-    private func timeRange(
-        for entry: TimetableEntry
-    ) -> (start: Double, end: Double)? {
-
+    private func timeRange(for entry: TimetableEntry) -> (start: Double, end: Double)? {
         let nums = entry.time
-            .split(
-                whereSeparator: {
-                    !$0.isNumber
-                }
-            )
-            .compactMap {
-                Double($0)
-            }
+            .split(whereSeparator: { !$0.isNumber })
+            .compactMap { Double($0) }
 
         var start: Double?
         var end: Double?
@@ -350,204 +219,37 @@ struct TimetableView: View {
             end = nums[1]
         }
 
-        if start == nil,
-           let hour = Int(entry.start.prefix(2)) {
+        if start == nil, let hour = Int(entry.start.prefix(2)) {
             start = Double(hour)
         }
 
-        guard let start else {
-            return nil
-        }
+        guard let start else { return nil }
 
-        let finalEnd =
-            end.flatMap {
-                $0 > start ? $0 : nil
-            } ?? start + 1
-
+        let finalEnd = end.flatMap { $0 > start ? $0 : nil } ?? start + 1
         return (start, finalEnd)
     }
 
-    private var emptyTodayView: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "checkmark.circle")
-                .font(.system(size: 30))
-                .foregroundStyle(.green)
-
-            Text("Danes nimaš predavanj")
-                .font(
-                    .system(
-                        size: 16,
-                        weight: .semibold
-                    )
-                )
-
-            Text("Uživaj v prostem dnevu.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
-        .padding(.horizontal)
-    }
-
-    private var daySelectorHeader: some View {
-        HStack(spacing: 10) {
-            let dateMap: [DayOfWeek: Int] = [
-                .monday: 13,
-                .tuesday: 14,
-                .wednesday: 15,
-                .thursday: 16,
-                .friday: 17
-            ]
-
-            ForEach(DayOfWeek.allCases) { day in
-                let isSelected = day == selectedDay
-                let dateNum = dateMap[day] ?? 1
-
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        selectedDay = day
-                    }
-                } label: {
-                    VStack(spacing: 4) {
-                        Text(day.rawValue)
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .foregroundStyle(
-                                isSelected
-                                ? .white.opacity(0.8)
-                                : .secondary
-                            )
-
-                        Text("\(dateNum)")
-                            .font(.headline)
-                            .fontWeight(.bold)
-                            .foregroundStyle(
-                                isSelected
-                                ? .white
-                                : .primary
-                            )
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(
-                            cornerRadius: 16
-                        )
-                        .fill(
-                            isSelected
-                            ? Color.black
-                            : Color.white
-                        )
-                    )
-                    .shadow(
-                        color: Color.black.opacity(
-                            isSelected ? 0.15 : 0.03
-                        ),
-                        radius: 6,
-                        x: 0,
-                        y: 3
-                    )
-                }
-            }
-        }
-    }
-
-    private func errorView(
-        _ message: String
-    ) -> some View {
+    private func errorView(_ message: String) -> some View {
         VStack(spacing: 12) {
-            Image(
-                systemName:
-                    "exclamationmark.triangle"
-            )
-            .font(.largeTitle)
+            Image(systemName: "exclamationmark.triangle")
+                .font(.largeTitle)
+                .foregroundStyle(.black)
 
             Text("Napaka")
-                .font(.headline)
+                .font(.system(size: 22, weight: .bold, design: .monospaced))
+                .foregroundStyle(.black)
 
             Text(message)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.gray)
                 .multilineTextAlignment(.center)
 
             Button("Poskusi znova") {
-                Task {
-                    await viewModel.loadTimetable()
-                }
+                Task { await viewModel.loadTimetable() }
             }
+            .buttonStyle(.bordered)
+            .tint(.black)
         }
         .padding()
-    }
-}
-
-struct TimetableCardView: View {
-
-    let entry: TimetableEntry
-
-    var body: some View {
-        HStack(spacing: 0) {
-
-            RoundedRectangle(cornerRadius: 3)
-                .fill(entry.subjectColor)
-                .frame(width: 4)
-                .padding(.vertical, 12)
-                .padding(.leading, 12)
-
-            VStack(
-                alignment: .leading,
-                spacing: 6
-            ) {
-                HStack {
-                    Text(entry.time)
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.secondary)
-
-                    Spacer()
-
-                    Image(
-                        systemName:
-                            "chevron.right"
-                    )
-                    .font(.caption2)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.secondary)
-                }
-
-                Text(entry.subject)
-                    .font(.body)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.primary)
-
-                Text(
-                    "\(entry.type) • \(entry.classroom)"
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-            .padding(14)
-        }
-        .background(Color.white)
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius: 16
-            )
-        )
-        .overlay(
-            RoundedRectangle(
-                cornerRadius: 16
-            )
-            .stroke(
-                Color.black.opacity(0.05),
-                lineWidth: 0.7
-            )
-        )
-        .shadow(
-            color: Color.black.opacity(0.035),
-            radius: 8,
-            x: 0,
-            y: 4
-        )
     }
 }
