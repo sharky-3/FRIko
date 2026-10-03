@@ -8,8 +8,6 @@ struct FRIkoApp: App {
     
     var body: some Scene {
         WindowGroup {
-            PagerView()
-            /*
             ZStack {
                 Color.white
                     .ignoresSafeArea()
@@ -26,7 +24,6 @@ struct FRIkoApp: App {
             }
             .animation(.easeInOut(duration: 0.5), value: isLoaded)
             .animation(.easeInOut(duration: 0.5), value: isLoggedIn)
-             */
         }
     }
 }

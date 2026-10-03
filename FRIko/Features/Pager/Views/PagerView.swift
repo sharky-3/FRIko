@@ -5,7 +5,7 @@ private let pagerSpace = "pager"
 struct PagerView: View {
     @StateObject private var timetableVM = TimetableViewModel()
     @State private var selectedTab: Int? = 0
-    private let pageCount = 2
+    private let pageCount = 3
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -32,6 +32,9 @@ struct PagerView: View {
             .coordinateSpace(name: pagerSpace)
             .scrollTargetBehavior(.paging)
             .scrollPosition(id: $selectedTab)
+            .onAppear {
+                selectedTab = 1
+            }
             .scrollIndicators(.hidden)
             .ignoresSafeArea()
 
@@ -43,8 +46,9 @@ struct PagerView: View {
     @ViewBuilder
     private func pageContent(_ index: Int) -> some View {
         switch index {
-        case 0: TimetableView(viewModel: timetableVM)
-        case 1: WeeklyTimetableView(viewModel: timetableVM)
+        case 0: SettingsView(viewModel: timetableVM)
+        case 1: TimetableView(viewModel: timetableVM)
+        case 2: WeeklyTimetableView(viewModel: timetableVM)
         default: EmptyView()
         }
     }
