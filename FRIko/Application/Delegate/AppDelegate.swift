@@ -6,6 +6,11 @@ struct FRIkoApp: App {
     @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
     @AppStorage("studentId") private var studentId: String = ""
     
+    init() {
+        NotificationManager.shared.configure()
+    }
+
+    
     var body: some Scene {
         WindowGroup {
             ZStack {

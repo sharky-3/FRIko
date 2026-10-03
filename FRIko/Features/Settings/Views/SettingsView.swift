@@ -9,15 +9,14 @@ struct SettingsView: View {
 
     @State private var showLogoutConfirm = false
     @State private var isRefreshing = false
-
+    
     private var studentId: String {
         StudentStorage.shared.studentId ?? "-"
     }
 
     private var appVersion: String {
-        let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
-        let b = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
-        return "\(v) (\(b))"
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        return "\(version)"
     }
 
     private var windowInsets: UIEdgeInsets {
@@ -104,11 +103,10 @@ struct SettingsView: View {
                 subtitle: "Pred predavanji",
                 caption: "Obvestila"
             ) {
-                Toggle("", isOn: $notifications)
+                Toggle("", isOn: notificationsBinding)
                     .labelsHidden()
                     .tint(.black)
             }
-
             Button {
                 Task {
                     isRefreshing = true
@@ -196,6 +194,28 @@ struct SettingsView: View {
 
             hairline
         }
+    }
+    
+    private var notificationsBinding: Binding<Bool> {
+        Binding(
+            get: { notifications },
+            set: { newValue in
+                Task {
+                    if newValue {
+                        let granted = await NotificationManager.shared.requestPermission()
+                        notifications = granted
+                    } else {
+                        notifications = false
+                    }
+                    
+                    NotificationManager.shared.send(
+                        title: "FRIko",
+                        body: "Obvestila so \(notifications ? "vklopljena" : "izklopljena").",
+                        after: 1
+                    )
+                }
+            }
+        )
     }
 
     private func bigValue(_ text: String) -> some View {
