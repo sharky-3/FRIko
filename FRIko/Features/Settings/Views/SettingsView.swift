@@ -204,15 +204,15 @@ struct SettingsView: View {
                     if newValue {
                         let granted = await NotificationManager.shared.requestPermission()
                         notifications = granted
+                        
+                        NotificationManager.shared.send(
+                            title: "FRIko",
+                            body: "Obvestila so vklopljena!",
+                            after: 1
+                        )
                     } else {
                         notifications = false
                     }
-                    
-                    NotificationManager.shared.send(
-                        title: "FRIko",
-                        body: "Obvestila so \(notifications ? "vklopljena" : "izklopljena").",
-                        after: 1
-                    )
                 }
             }
         )
