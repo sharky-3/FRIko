@@ -23,7 +23,7 @@ struct FRIkoApp: App {
                 } else if isLoggedIn {
                     PagerView()
                 } else {
-                    LoginView()
+                    OnboardingFlow()
                         .transition(.opacity)
                 }
             }
@@ -31,4 +31,9 @@ struct FRIkoApp: App {
             .animation(.easeInOut(duration: 0.5), value: isLoggedIn)
         }
     }
+}
+
+
+#Preview {
+    OnboardingFlow()
 }

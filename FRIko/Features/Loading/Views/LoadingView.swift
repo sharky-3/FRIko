@@ -65,7 +65,7 @@ struct LoadingView: View {
     }
 
     private var pill: some View {
-        Text("FRI · UL")
+        Text("Univerza v Ljubljani")
             .font(.system(size: 12, weight: .medium, design: .monospaced))
             .foregroundStyle(.white)
             .padding(.horizontal, 14)
