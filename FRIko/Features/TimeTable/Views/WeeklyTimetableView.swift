@@ -99,7 +99,7 @@ private struct WeekBlockView: View {
                     .font(.system(size: 10))
                     .foregroundStyle(secondary)
                     .lineLimit(1)
-            }
+            }            
         }
         .padding(.vertical, 6)
         .padding(.leading, 11)
