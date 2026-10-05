@@ -78,38 +78,36 @@ private struct WeekBlockView: View {
         let entry = block.entry
         let height = max(CGFloat(block.end - block.start) * rowHeight - gap * 2, 24)
         let isCompact = height < 46
-        let primary: Color = isLive ? .white : .black
-        let secondary: Color = isLive ? Color.white.opacity(0.75) : Color(white: 0.5)
         let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
 
         VStack(alignment: .leading, spacing: 2) {
             Text(entry.tag)
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(primary)
+                .foregroundStyle(.black)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
 
             if !isCompact {
                 Text(entry.classroom)
                     .font(.system(size: 10))
-                    .foregroundStyle(secondary)
+                    .foregroundStyle(.gray)
                     .lineLimit(1)
 
                 Text(entry.type)
                     .font(.system(size: 10))
-                    .foregroundStyle(secondary)
+                    .foregroundStyle(.gray)
                     .lineLimit(1)
-            }            
+            }
         }
         .padding(.vertical, 6)
         .padding(.leading, 11)
         .padding(.trailing, 6)
         .frame(width: width, height: height, alignment: .topLeading)
         .background(
-            shape.fill(isLive ? entry.subjectColor : Color.black.opacity(0.04))
+            shape.fill(isLive ? entry.subjectColor.opacity(0.5) : .black.opacity(0.04))
         )
         .overlay(
-            shape.strokeBorder(Color.black.opacity(isLive ? 0 : 0.16), lineWidth: 0.5)
+            shape.strokeBorder(.black.opacity(isLive ? 0 : 0.16), lineWidth: 0.5)
         )
         .overlay(alignment: .leading) {
             Capsule()
@@ -133,7 +131,7 @@ private struct WeekBlockView: View {
             }
         }
         .clipShape(shape)
-        .shadow(color: isLive ? entry.subjectColor.opacity(0.35) : .clear, radius: 8, y: 4)
+        .shadow(color: .clear, radius: 8, y: 4)
         .opacity(isPast ? 0.4 : 1)
         .contentShape(shape)
     }
