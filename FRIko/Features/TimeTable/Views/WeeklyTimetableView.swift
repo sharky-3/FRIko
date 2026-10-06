@@ -118,7 +118,7 @@ private struct WeekBlockView: View {
         }
         .overlay(alignment: .topTrailing) {
             if isLive {
-                PulseDot(color: .white, size: 4)
+                PulseDot(color: .black, size: 4)
                     .frame(width: 4, height: 4)
                     .padding(8)
             }

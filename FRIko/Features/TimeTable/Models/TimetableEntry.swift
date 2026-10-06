@@ -7,7 +7,7 @@ struct TimetableEntry: Codable, Identifiable, Hashable {
     let tag: String
     let classroom: String
     let durration: Int
-    let start: String
+    let rawStart: String
     let type: String
     let teachers: [String]
     var dayOfWeek: DayOfWeek = .monday
@@ -22,24 +22,33 @@ struct TimetableEntry: Codable, Identifiable, Hashable {
             .first?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? name
     }
-    var end: String {
-        guard let hour = Int(start.split(separator: ":").first ?? ""),
-              let minute = Int(start.split(separator: ":").last ?? "") else {
-            return start
-        }
-        let totalMinutes = hour * 60 + minute + (durration * 60)
-        let endHour = (totalMinutes / 60) % 24
-        let endMinute = totalMinutes % 60
-        return String(format: "%02d:%02d", endHour, endMinute)
+    
+    var start: String {
+        Self.add(minutes: 15, to: rawStart)
     }
-    var time: String {"\(start) – \(end)"}
+    
+    var end: String {
+        Self.add(minutes: durration * 60, to: rawStart)
+    }
+    
+    var time: String { "\(start) – \(end)" }
+
+    private static func add(minutes: Int, to time: String) -> String {
+        let parts = time.split(separator: ":")
+        guard parts.count >= 2,
+              let h = Int(parts[0]),
+              let m = Int(parts[1]) else { return time }
+        let total = h * 60 + m + minutes
+        return String(format: "%02d:%02d", (total / 60) % 24, total % 60)
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, tag, classroom, durration, type, teachers
+        case rawStart = "start"
+    }
     
     var subjectColor: Color {
         SubjectColorManager.shared.color(for: subject)
-    }
-    
-    enum CodingKeys: String, CodingKey {
-        case id, name, tag, classroom, durration, start, type, teachers
     }
 }
 

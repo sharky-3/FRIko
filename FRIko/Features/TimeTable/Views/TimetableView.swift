@@ -447,7 +447,7 @@ struct TimetableView: View {
         var end: Double?
 
         if nums.count >= 4 {
-            start = nums[0] + nums[1] / 60 + (15 / 60)
+            start = nums[0] + nums[1] / 60
             end = nums[2] + nums[3] / 60
         } else if nums.count == 2 {
             start = nums[0]
