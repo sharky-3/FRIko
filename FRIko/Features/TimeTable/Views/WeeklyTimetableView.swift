@@ -104,7 +104,7 @@ private struct WeekBlockView: View {
         .padding(.trailing, 6)
         .frame(width: width, height: height, alignment: .topLeading)
         .background(
-            shape.fill(isLive ? entry.subjectColor.opacity(0.5) : .black.opacity(0.04))
+            shape.fill(isLive ? entry.subjectColor.opacity(0.25) : .black.opacity(0.04))
         )
         .overlay(
             shape.strokeBorder(.black.opacity(isLive ? 0 : 0.16), lineWidth: 0.5)
@@ -126,7 +126,7 @@ private struct WeekBlockView: View {
         .overlay(alignment: .bottomLeading) {
             if isLive {
                 Rectangle()
-                    .fill(Color.white.opacity(0.9))
+                    .fill(.black.opacity(0.9))
                     .frame(width: width * progress, height: 1.5)
             }
         }

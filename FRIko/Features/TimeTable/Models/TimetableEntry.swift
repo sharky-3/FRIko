@@ -90,13 +90,21 @@ final class SubjectColorManager {
     
     private let palette: [Color] = [
         Color(hex: "ffff45"),
-        Color(hex: "ff5238"),
+        Color(hex: "ff6a4d"),
         Color(hex: "ff80c5"),
-        Color(hex: "43beaf"),
-        Color(hex: "8f8ac4"),
-        Color(hex: "b8b8b8"),
-        Color(hex: "95d94e"),
-        Color(hex: "569fdc")
+        Color(hex: "2ee6c5"),
+        Color(hex: "a899ff"),
+        Color(hex: "a6f04d"),
+        Color(hex: "5cb8ff"),
+        Color(hex: "ff9f1c"),
+        Color(hex: "ff6f91"),
+        Color(hex: "ff4fd8"),
+        Color(hex: "c27dff"),
+        Color(hex: "00e5ff"),
+        Color(hex: "00f5a0"),
+        Color(hex: "3dff7a"),
+        Color(hex: "c6ff00"),
+        Color(hex: "ffb347")
     ]
     
     private var assignedColors: [String: Color] = [:]
