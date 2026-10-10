@@ -52,6 +52,7 @@ struct PagerView: View {
             )
             .opacity(ready ? 1 : 0)
         }
+        .background(.black)
         .sensoryFeedback(.selection, trigger: selectedTab)
         .onAppear {
             selectedTab = 1

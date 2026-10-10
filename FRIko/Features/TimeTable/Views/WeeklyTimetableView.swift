@@ -129,8 +129,6 @@ struct WeeklyTimetableView: View {
         }
     }
 
-    // MARK: - Header
-
     private var topRow: some View {
         HStack {
             MetaTag(StudentStorage.shared.studentId ?? "-")
@@ -281,8 +279,6 @@ struct WeeklyTimetableView: View {
         return cal.component(.day, from: date)
     }
 
-    // MARK: - Grid
-
     private func grid(colWidth: CGFloat, date: Date) -> some View {
         ZStack(alignment: .topLeading) {
             todayTint(colWidth: colWidth)
@@ -416,8 +412,6 @@ struct WeeklyTimetableView: View {
         }
         .rise(0.25 + Double(index) * 0.05)
     }
-
-    // MARK: - Data
 
     private func blocks(for day: DayOfWeek) -> [Block] {
         let items: [Block] = viewModel.entries

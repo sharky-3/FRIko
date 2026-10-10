@@ -1,7 +1,5 @@
 import SwiftUI
 
-/// Launch moment. The one place the brand gets to be loud: three serif
-/// letters rising into place, the faculty name, and a hairline of progress.
 struct LoadingView: View {
 
     @Binding var isFinished: Bool
@@ -53,8 +51,6 @@ struct LoadingView: View {
         .preferredColorScheme(.light)
         .task { await runSequence() }
     }
-
-    // MARK: - Pieces
 
     private var topRow: some View {
         VStack(spacing: 14) {
@@ -144,8 +140,6 @@ struct LoadingView: View {
         let t = min(max(date.timeIntervalSince(start) / progressDuration, 0), 1)
         return CGFloat(t * t * (3 - 2 * t))
     }
-
-    // MARK: - Sequence
 
     @MainActor
     private func runSequence() async {

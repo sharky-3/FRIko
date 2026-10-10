@@ -1,27 +1,6 @@
-//
-//  Theme 2.swift
-//  FRIko
-//
-//  Created by Blaz on 11. 10. 2026.
-//
-
-
-//
-//  HabitsDashboardViews.swift
-//  All cards from the design in ONE file (SwiftUI, iOS 16+).
-//
-//  Every card takes your own text, images and actions as parameters.
-//  Images can come from: Assets catalog, a URL, a UIImage, or nothing (placeholder).
-//
-//  Usage: drop this file into your Xcode project, then use DashboardDemoScreen()
-//  or any single card (e.g. TasksCard(...)) anywhere in your own views.
-//
-
 import SwiftUI
 
-// MARK: - Theme
-
-enum Theme {
+enum DashStyle {
     static let background = Color(red: 0.86, green: 0.86, blue: 0.87)
     static let card       = Color.white
     static let heroCard   = Color(red: 0.96, green: 0.96, blue: 0.96)
@@ -32,8 +11,6 @@ enum Theme {
     static let accentRed  = Color(red: 0.90, green: 0.35, blue: 0.20)
     static let cardRadius: CGFloat = 28
 }
-
-// MARK: - Image source (assets / url / UIImage / none)
 
 enum ImageSource {
     case asset(String)
@@ -79,8 +56,6 @@ struct AvatarView: View {
     }
 }
 
-// MARK: - Small reusable pieces
-
 struct CircleIconButton: View {
     let systemName: String
     var dark: Bool = false
@@ -92,9 +67,9 @@ struct CircleIconButton: View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: size * 0.36, weight: .semibold))
-                .foregroundStyle(dark ? Color.white : Theme.ink)
+                .foregroundStyle(dark ? Color.white : DashStyle.ink)
                 .frame(width: size, height: size)
-                .background(dark ? Theme.ink : Color.white)
+                .background(dark ? DashStyle.ink : Color.white)
                 .clipShape(Circle())
                 .overlay(
                     Circle().stroke(Color.black.opacity(outlined ? 0.12 : 0), lineWidth: 1)
@@ -107,7 +82,7 @@ struct CircleIconButton: View {
 struct PillLabel: View {
     let text: String
     var systemImage: String? = nil
-    var imageTint: Color = Theme.ink
+    var imageTint: Color = DashStyle.ink
 
     var body: some View {
         HStack(spacing: 6) {
@@ -118,7 +93,7 @@ struct PillLabel: View {
             }
             Text(text)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(Theme.ink)
+                .foregroundStyle(DashStyle.ink)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -127,14 +102,12 @@ struct PillLabel: View {
     }
 }
 
-// MARK: - 1. Community card ("Productive routine.")
-
 struct CommunityCard: View {
-    var source: String = "HabitsJournal"
+    var source: String = "SourceName"
     var category: String = "Community"
     var title: String = "Productive routine."
     var readNowTitle: String = "Read now"
-    var websiteText: String = "habitsjournal.com"
+    var websiteText: String = "example.com"
     var views: String = "1.4k"
     var coverImage: ImageSource = .none
     var likedBy: [ImageSource] = []
@@ -149,7 +122,7 @@ struct CommunityCard: View {
                 HStack(spacing: 6) {
                     Image(systemName: "globe")
                         .font(.system(size: 15))
-                    (Text("by ").foregroundStyle(Theme.muted)
+                    (Text("by ").foregroundStyle(DashStyle.muted)
                      + Text(source).fontWeight(.semibold))
                         .font(.system(size: 15))
                 }
@@ -170,7 +143,7 @@ struct CommunityCard: View {
                 HStack(spacing: 6) {
                     Text(readNowTitle)
                         .underline()
-                        .foregroundStyle(Theme.muted)
+                        .foregroundStyle(DashStyle.muted)
                     Image(systemName: "arrow.right")
                         .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(.white)
@@ -183,7 +156,6 @@ struct CommunityCard: View {
             .buttonStyle(.plain)
             .padding(.top, 2)
 
-            // Cover image with overlays
             ZStack {
                 SourceImage(source: coverImage)
                     .frame(maxWidth: .infinity)
@@ -197,7 +169,7 @@ struct CommunityCard: View {
                                 .font(.system(size: 12, weight: .semibold))
                             Image(systemName: "link")
                                 .font(.system(size: 10))
-                                .foregroundStyle(Theme.accentRed)
+                                .foregroundStyle(DashStyle.accentRed)
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 7)
@@ -228,7 +200,7 @@ struct CommunityCard: View {
                                 Button(action: onAddLike) {
                                     Image(systemName: "plus")
                                         .font(.system(size: 12, weight: .bold))
-                                        .foregroundStyle(Theme.ink)
+                                        .foregroundStyle(DashStyle.ink)
                                         .frame(width: 30, height: 30)
                                         .background(Color.white)
                                         .clipShape(Circle())
@@ -251,12 +223,10 @@ struct CommunityCard: View {
             .padding(.top, 14)
         }
         .padding(16)
-        .background(Theme.card)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+        .background(DashStyle.card)
+        .clipShape(RoundedRectangle(cornerRadius: DashStyle.cardRadius, style: .continuous))
     }
 }
-
-// MARK: - 2. Statistics hero card ("Hello Daniel ...")
 
 struct StatisticsHeroCard: View {
     var label: String = "Statistics"
@@ -273,11 +243,11 @@ struct StatisticsHeroCard: View {
             HStack {
                 Image(systemName: "square.grid.2x2.fill")
                     .font(.system(size: 24))
-                    .foregroundStyle(Theme.ink)
+                    .foregroundStyle(DashStyle.ink)
                 Spacer()
                 CircleIconButton(systemName: "square.and.arrow.up", size: 44, action: onShare)
             }
-            Spacer(minLength: 24)
+            Spacer(minLength: 100)
             Text(label)
                 .font(.system(size: 15, weight: .medium))
             VStack(alignment: .leading, spacing: 0) {
@@ -291,22 +261,21 @@ struct StatisticsHeroCard: View {
             .font(.system(size: 44, weight: .regular))
             .minimumScaleFactor(0.6)
             .lineLimit(4)
-            .foregroundStyle(Theme.ink)
+            .foregroundStyle(DashStyle.ink)
         }
         .padding(18)
+        .padding(.top, 25)
         .frame(maxWidth: .infinity, minHeight: 360, alignment: .topLeading)
-        .background(Theme.heroCard)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+        .background(DashStyle.heroCard)
+        .clipShape(RoundedRectangle(cornerRadius: DashStyle.cardRadius, style: .continuous))
     }
 }
-
-// MARK: - 3. Webinar row
 
 struct WebinarRow: View {
     var day: String = "11"
     var weekday: String = "Fri"
     var title: String = "Webinar"
-    var subtitle: String = "Implementation of habits."
+    var subtitle: String = "Short description."
     var onMore: () -> Void = {}
     var onLink: () -> Void = {}
 
@@ -318,7 +287,7 @@ struct WebinarRow: View {
             }
             .foregroundStyle(.white)
             .frame(width: 58, height: 66)
-            .background(Theme.ink)
+            .background(DashStyle.ink)
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
             VStack(alignment: .leading, spacing: 2) {
@@ -330,20 +299,18 @@ struct WebinarRow: View {
                 }
                 Text(subtitle)
                     .font(.system(size: 14))
-                    .foregroundStyle(Theme.muted)
+                    .foregroundStyle(DashStyle.muted)
                     .lineLimit(1)
             }
             Spacer()
-            CircleIconButton(systemName: "ellipsis", outlined: true, size: 44, action: onMore)
+            CircleIconButton(systemName: "ellipsis", size: 44, outlined: true, action: onMore)
             CircleIconButton(systemName: "link", dark: true, size: 44, action: onLink)
         }
         .padding(10)
-        .background(Theme.card)
+        .background(DashStyle.card)
         .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
     }
 }
-
-// MARK: - 4. Shared statistics pill
 
 struct SharedStatsPill: View {
     var text: String = "Statistics shared to "
@@ -354,16 +321,16 @@ struct SharedStatsPill: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            (Text(text) + Text("\(count) ") + Text(noun).foregroundStyle(Theme.muted))
+            (Text(text) + Text("\(count) ") + Text(noun).foregroundStyle(DashStyle.muted))
                 .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(Theme.ink)
+                .foregroundStyle(DashStyle.ink)
             Spacer()
             Button(action: onSwap) {
                 Image(systemName: "arrow.left.arrow.right")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Theme.ink)
+                    .foregroundStyle(DashStyle.ink)
                     .frame(width: 40, height: 40)
-                    .overlay(Circle().stroke(Theme.muted.opacity(0.6),
+                    .overlay(Circle().stroke(DashStyle.muted.opacity(0.6),
                                              style: StrokeStyle(lineWidth: 1, dash: [3, 3])))
             }
             .buttonStyle(.plain)
@@ -371,12 +338,10 @@ struct SharedStatsPill: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(Theme.card)
+        .background(DashStyle.card)
         .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
     }
 }
-
-// MARK: - 5. Small stat chips
 
 struct BestResultChip: View {
     var done: Int = 5
@@ -386,9 +351,9 @@ struct BestResultChip: View {
     var body: some View {
         HStack(spacing: 6) {
             Text("🏆").font(.system(size: 12))
-            (Text("Best Result: \(done)/") + Text("\(total)").foregroundStyle(Theme.muted) + Text(" \(label)"))
+            (Text("Best Result: \(done)/") + Text("\(total)").foregroundStyle(DashStyle.muted) + Text(" \(label)"))
                 .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(Theme.ink)
+                .foregroundStyle(DashStyle.ink)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -400,7 +365,7 @@ struct BestResultChip: View {
 struct GrowthChip: View {
     var text: String = "Growth: +15%"
     var body: some View {
-        PillLabel(text: text, systemImage: "chart.line.uptrend.xyaxis", imageTint: Theme.accentRed)
+        PillLabel(text: text, systemImage: "chart.line.uptrend.xyaxis", imageTint: DashStyle.accentRed)
     }
 }
 
@@ -410,8 +375,6 @@ struct ArrowCircleButton: View {
         CircleIconButton(systemName: "arrow.up.right", size: 44, action: action)
     }
 }
-
-// MARK: - 6. Current tasks card (green)
 
 struct TasksCard: View {
     var dateText: String = "10 Thu"
@@ -430,7 +393,7 @@ struct TasksCard: View {
                     Text(dateText)
                 }
                 .font(.system(size: 15))
-                .foregroundStyle(Theme.muted)
+                .foregroundStyle(DashStyle.muted)
                 Spacer()
                 CircleIconButton(systemName: "square.and.arrow.up", size: 44, action: onShare)
                     .opacity(0.85)
@@ -450,7 +413,7 @@ struct TasksCard: View {
                         Image(systemName: "chart.line.uptrend.xyaxis")
                     }
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Theme.accentRed)
+                    .foregroundStyle(DashStyle.accentRed)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
                     .background(Color.white)
@@ -459,7 +422,7 @@ struct TasksCard: View {
                 }
             }
             .font(.system(size: 30, weight: .regular))
-            .foregroundStyle(Theme.ink)
+            .foregroundStyle(DashStyle.ink)
             .padding(.top, 2)
 
             Divider().padding(.vertical, 14)
@@ -468,17 +431,15 @@ struct TasksCard: View {
                 ForEach(tags, id: \.self) { tag in
                     Text(tag)
                         .font(.system(size: 14))
-                        .foregroundStyle(Theme.muted)
+                        .foregroundStyle(DashStyle.muted)
                 }
             }
         }
         .padding(16)
-        .background(Theme.green)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+        .background(DashStyle.green)
+        .clipShape(RoundedRectangle(cornerRadius: DashStyle.cardRadius, style: .continuous))
     }
 }
-
-// MARK: - 7. Progress card (blue)
 
 enum ProgressPeriod: String, CaseIterable {
     case weekly = "Weekly"
@@ -505,17 +466,17 @@ struct ProgressCard: View {
                         Button { period = p } label: {
                             Text(p.rawValue)
                                 .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(period == p ? Theme.ink : .white)
+                                .foregroundStyle(period == p ? DashStyle.ink : .white)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 6)
-                                .background(period == p ? Theme.blue : Theme.ink)
+                                .background(period == p ? DashStyle.blue : DashStyle.ink)
                                 .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
                     }
                 }
                 .padding(2)
-                .background(Theme.ink)
+                .background(DashStyle.ink)
                 .clipShape(Capsule())
             }
             Spacer(minLength: 16)
@@ -529,16 +490,14 @@ struct ProgressCard: View {
                 Text("\(percent)%")
                     .font(.system(size: 60, weight: .light))
             }
-            .foregroundStyle(Theme.ink)
+            .foregroundStyle(DashStyle.ink)
         }
         .padding(14)
         .frame(maxWidth: .infinity, minHeight: 160, alignment: .topLeading)
-        .background(Theme.blue)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+        .background(DashStyle.blue)
+        .clipShape(RoundedRectangle(cornerRadius: DashStyle.cardRadius, style: .continuous))
     }
 }
-
-// MARK: - 8. Bottom tab bar
 
 enum DashTab: CaseIterable {
     case layout, home, settings, profile
@@ -562,7 +521,7 @@ struct DashTabBar: View {
                 Button { selected = tab } label: {
                     Image(systemName: tab.systemName)
                         .font(.system(size: 18))
-                        .foregroundStyle(selected == tab ? Theme.ink : Color.white.opacity(0.9))
+                        .foregroundStyle(selected == tab ? DashStyle.ink : Color.white.opacity(0.9))
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
                         .background(selected == tab ? Color.white : Color.clear)
@@ -576,17 +535,13 @@ struct DashTabBar: View {
     }
 }
 
-// MARK: - Full demo screen (everything together)
-
 struct DashboardDemoScreen: View {
     @State private var period: ProgressPeriod = .weekly
     @State private var tab: DashTab = .home
 
-    // Replace with your own data / images:
-    // .asset("myImage"), .url(URL(string: "https://...")!), .uiImage(myUIImage)
     var body: some View {
         ZStack {
-            Theme.background.ignoresSafeArea()
+            DashStyle.background.ignoresSafeArea()
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 12) {
                     StatisticsHeroCard(
@@ -602,7 +557,7 @@ struct DashboardDemoScreen: View {
 
                     WebinarRow(day: "11", weekday: "Fri",
                                title: "Webinar",
-                               subtitle: "Implementation of habits.")
+                               subtitle: "Short description.")
 
                     TasksCard(count: 3, priority: "High",
                               tags: ["#shopping", "#renovation", "#planning"])
@@ -625,8 +580,4 @@ struct DashboardDemoScreen: View {
             }
         }
     }
-}
-
-#Preview {
-    DashboardDemoScreen()
 }

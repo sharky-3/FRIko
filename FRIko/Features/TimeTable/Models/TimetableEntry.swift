@@ -88,8 +88,6 @@ enum DayOfWeek: String, Codable, CaseIterable, Identifiable {
 final class SubjectColorManager {
     static let shared = SubjectColorManager()
     
-    /// Mid-saturation hues that stay distinguishable as thin stripes on white
-    /// without competing with the UL blue used for live status.
     private let palette: [Color] = [
         Color(hex: "E5484D"),
         Color(hex: "F5A524"),

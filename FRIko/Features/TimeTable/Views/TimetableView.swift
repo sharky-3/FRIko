@@ -10,15 +10,14 @@ struct TimetableView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                Theme.Palette.canvas.ignoresSafeArea()
+            ZStack(alignment: .top) {
+                Color.black.ignoresSafeArea()
 
                 Group {
                     if viewModel.isLoading && viewModel.entries.isEmpty {
                         ProgressView("Nalaganje urnika...")
                             .tint(Theme.Palette.ink)
-                    } else if let errorMessage = viewModel.errorMessage,
-                              viewModel.entries.isEmpty {
+                    } else if let errorMessage = viewModel.errorMessage, viewModel.entries.isEmpty {
                         errorView(errorMessage)
                     } else {
                         mainContentView
@@ -30,10 +29,8 @@ struct TimetableView: View {
             .task { await viewModel.loadTimetable() }
         }
         .tint(Theme.Palette.ink)
-        .preferredColorScheme(.light)
+        .background(.black)
     }
-
-    // MARK: - Content
 
     private var mainContentView: some View {
         let todayEntries = viewModel.entries
@@ -43,43 +40,51 @@ struct TimetableView: View {
         return GeometryReader { proxy in
             ScrollView {
                 TimelineView(.periodic(from: .now, by: 30)) { context in
-                    VStack(alignment: .leading, spacing: 0) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        StatisticsHeroCard()
+                        WebinarRow()
+                        SharedStatsPill()
+                        BestResultChip()
+                        GrowthChip()
+                        ArrowCircleButton()
+                        TasksCard()
+                        
+                        hero(entries: todayEntries, date: context.date)
+                            .ignoresSafeArea(edges: .top)
+                            .rise(0.15)
                         topRow(date: context.date)
                             .rise(0.05)
-
-                        hero(entries: todayEntries, date: context.date)
-                            .padding(.top, 22)
-                            .rise(0.15)
-
                         Spacer(minLength: 36)
-
                         if !todayEntries.isEmpty {
                             timeline(entries: todayEntries, date: context.date)
                         }
                     }
-                    .padding(.top, 20)
                     .padding(.bottom, 44)
                     .frame(minHeight: proxy.size.height, alignment: .top)
                 }
             }
             .scrollIndicators(.hidden)
+            .ignoresSafeArea(edges: .top)
         }
     }
 
     private func topRow(date: Date) -> some View {
-        HStack {
-            MetaTag(StudentStorage.shared.studentId ?? "-")
-
+        HStack(spacing: 5) {
+            Text("Student ID")
+                .font(.system(size: 17, weight: .bold))
+                .foregroundStyle(.black)
+            
+            Text(StudentStorage.shared.studentId ?? "-")
+                .font(.system(size: 17, weight: .light))
+                .foregroundStyle(.black)
+            
             Spacer()
-
-            MetaText(
-                date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated)).uppercased()
-            )
         }
         .padding(.horizontal, Theme.Space.page)
+        .padding(.vertical, 24)
+        .background(Color(hex: "#f9e398"))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
-
-    // MARK: - Hero
 
     private func hero(entries: [TimetableEntry], date: Date) -> some View {
         let now = TimeFormat.hours(of: date)
@@ -93,14 +98,9 @@ struct TimetableView: View {
         } ?? 0
 
         return VStack(alignment: .leading, spacing: 0) {
-
             HStack(spacing: 8) {
-                if isLive {
-                    PulseDot()
-                }
-
+                if isLive { PulseDot() }
                 Eyebrow(label(isLive: isLive, hasEntry: entry != nil))
-
                 Spacer()
             }
 
@@ -154,7 +154,12 @@ struct TimetableView: View {
             }
         }
         .padding(.horizontal, Theme.Space.page)
+        .padding(.top, 150)
+        .padding(.bottom, 24)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .ignoresSafeArea(edges: .top)
         .accessibilityElement(children: .combine)
     }
 
@@ -195,48 +200,50 @@ struct TimetableView: View {
         return ("\(mins)", "min")
     }
 
-    // MARK: - Timeline
-
     private func timeline(entries: [TimetableEntry], date: Date) -> some View {
-        let now = TimeFormat.hours(of: date)
-        let current = currentClass(in: entries, at: date)
+            let now = TimeFormat.hours(of: date)
+            let current = currentClass(in: entries, at: date)
 
-        return VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Eyebrow("DANES")
+            return VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Eyebrow("DANES")
 
-                Spacer()
+                    Spacer()
 
-                Text(String(format: "%02d", entries.count))
-                    .themeFont(.mono)
-                    .foregroundStyle(Theme.Palette.inkTertiary)
+                    Text(String(format: "%02d", entries.count))
+                        .themeFont(.mono)
+                        .foregroundStyle(Theme.Palette.inkTertiary)
+                }
+                .padding(.horizontal, Theme.Space.page)
+                .padding(.bottom, 6)
+                .rise(0.3)
+
+                ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+                    let range = entry.hourRange
+                    let isLive = entry.id == current?.id
+                    let isPast = (range?.end ?? 0) <= now
+
+                    NavigationLink {
+                        ClassDetailView(entry: entry, allEntries: viewModel.entries)
+                    } label: {
+                        timelineRow(
+                            entry,
+                            range: range,
+                            isFirst: index == 0,
+                            isLast: index == entries.count - 1,
+                            isLive: isLive,
+                            isPast: isPast
+                        )
+                    }
+                    .buttonStyle(RowPressStyle())
+                    .rise(0.35 + Double(index) * 0.05)
+                }
             }
             .padding(.horizontal, Theme.Space.page)
-            .padding(.bottom, 6)
-            .rise(0.3)
-
-            ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
-                let range = entry.hourRange
-                let isLive = entry.id == current?.id
-                let isPast = (range?.end ?? 0) <= now
-
-                NavigationLink {
-                    ClassDetailView(entry: entry, allEntries: viewModel.entries)
-                } label: {
-                    timelineRow(
-                        entry,
-                        range: range,
-                        isFirst: index == 0,
-                        isLast: index == entries.count - 1,
-                        isLive: isLive,
-                        isPast: isPast
-                    )
-                }
-                .buttonStyle(RowPressStyle())
-                .rise(0.35 + Double(index) * 0.05)
-            }
+            .padding(.vertical, 24)
+            .background(Color(hex: "#a3dee5"))
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         }
-    }
 
     private func timelineRow(
         _ entry: TimetableEntry,
@@ -328,8 +335,6 @@ struct TimetableView: View {
         }
     }
 
-    // MARK: - Lookups
-
     private func currentClass(in entries: [TimetableEntry], at date: Date) -> TimetableEntry? {
         let now = TimeFormat.hours(of: date)
         return entries.first {
@@ -345,8 +350,6 @@ struct TimetableView: View {
             return r.start > now
         }
     }
-
-    // MARK: - Error
 
     private func errorView(_ message: String) -> some View {
         VStack(spacing: 14) {
