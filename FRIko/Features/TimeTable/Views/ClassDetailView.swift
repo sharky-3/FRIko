@@ -1,45 +1,5 @@
 import SwiftUI
 
-private struct Rise: ViewModifier {
-    let delay: Double
-    @State private var shown = false
-
-    func body(content: Content) -> some View {
-        content
-            .opacity(shown ? 1 : 0)
-            .offset(y: shown ? 0 : 22)
-            .blur(radius: shown ? 0 : 6)
-            .onAppear {
-                withAnimation(.timingCurve(0.16, 1, 0.3, 1, duration: 0.9).delay(delay)) {
-                    shown = true
-                }
-            }
-    }
-}
-
-private extension View {
-    func rise(_ delay: Double = 0) -> some View {
-        modifier(Rise(delay: delay))
-    }
-}
-
-private struct DrawHairline: View {
-    var delay: Double = 0
-    @State private var drawn = false
-
-    var body: some View {
-        Rectangle()
-            .fill(Color.black.opacity(0.18))
-            .frame(height: 0.5)
-            .scaleEffect(x: drawn ? 1 : 0, anchor: .leading)
-            .onAppear {
-                withAnimation(.timingCurve(0.16, 1, 0.3, 1, duration: 1.1).delay(delay)) {
-                    drawn = true
-                }
-            }
-    }
-}
-
 struct ClassDetailView: View {
     let entry: TimetableEntry
     let allEntries: [TimetableEntry]
@@ -59,7 +19,7 @@ struct ClassDetailView: View {
     private var slots: [Slot] {
         let items = relatedEntries
             .compactMap { e -> Slot? in
-                guard let r = timeRange(for: e) else { return nil }
+                guard let r = e.hourRange else { return nil }
                 return Slot(entry: e, start: r.start, end: r.end)
             }
             .sorted { a, b in
@@ -88,11 +48,7 @@ struct ClassDetailView: View {
     }
 
     private var hoursText: String {
-        let rounded = (totalHours * 2).rounded() / 2
-        if rounded.truncatingRemainder(dividingBy: 1) == 0 {
-            return "\(Int(rounded))"
-        }
-        return String(format: "%.1f", rounded).replacingOccurrences(of: ".", with: ",")
+        TimeFormat.total(totalHours)
     }
 
     var body: some View {
@@ -103,22 +59,22 @@ struct ClassDetailView: View {
                         .rise(0.05)
 
                     Text(entry.subject)
-                        .font(.system(size: 36, weight: .bold, design: .serif))
-                        .foregroundStyle(.black)
+                        .themeFont(.display)
+                        .foregroundStyle(Theme.Palette.ink)
                         .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, Theme.Space.page)
                         .padding(.top, 24)
-                        .rise(0.15)
+                        .rise(0.1)
 
                     stat
                         .padding(.top, 28)
-                        .rise(0.25)
+                        .rise(0.15)
 
                     if !entry.lecturer.isEmpty {
                         lecturerSection
                             .padding(.top, 32)
-                            .rise(0.35)
+                            .rise(0.2)
                     }
 
                     Spacer(minLength: 40)
@@ -131,94 +87,85 @@ struct ClassDetailView: View {
             }
             .scrollIndicators(.hidden)
         }
-        .background(Color.white.ignoresSafeArea())
+        .background(Theme.Palette.canvas.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .tint(.black)
+        .tint(Theme.Palette.ink)
         .preferredColorScheme(.light)
     }
 
     private var topRow: some View {
         HStack {
-            Text(entry.ects.map { "\($0) ECTS" } ?? "PREDMET")
-                .font(.system(size: 12, weight: .medium, design: .monospaced))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(Capsule().fill(Color(white: 0.1)))
+            MetaTag(entry.ects.map { "\($0) ECTS" } ?? "PREDMET")
 
             Spacer()
 
-            Text(entry.type.uppercased())
-                .font(.system(size: 12, weight: .medium, design: .monospaced))
-                .foregroundStyle(Color(white: 0.55))
+            MetaText(entry.type.uppercased())
                 .lineLimit(1)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, Theme.Space.page)
     }
 
     private var stat: some View {
         VStack(alignment: .leading, spacing: 0) {
-            DrawHairline(delay: 0.3)
+            Hairline(delay: 0.2)
                 .padding(.bottom, 22)
 
-            Text("TEDENSKO")
-                .font(.system(size: 11, weight: .semibold))
-                .tracking(1.2)
-                .foregroundStyle(Color(white: 0.6))
+            Eyebrow("TEDENSKO")
 
             HStack(alignment: .lastTextBaseline, spacing: 6) {
                 Text(hoursText)
-                    .font(.system(size: 72, weight: .ultraLight))
+                    .themeFont(.numeralL)
                     .monospacedDigit()
-                    .foregroundStyle(.black)
+                    .foregroundStyle(Theme.Palette.ink)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
 
                 Text("ur")
-                    .font(.system(size: 18, weight: .light))
-                    .foregroundStyle(Color(white: 0.5))
+                    .themeFont(.unit)
+                    .foregroundStyle(Theme.Palette.inkSecondary)
             }
-            .padding(.top, 10)
+            .padding(.top, 8)
 
             Text("\(slots.count) \(slots.count == 1 ? "termin" : "terminov")")
-                .font(.system(size: 12))
-                .foregroundStyle(Color(white: 0.5))
+                .themeFont(.caption)
+                .foregroundStyle(Theme.Palette.inkSecondary)
                 .padding(.top, 2)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, Theme.Space.page)
+        .accessibilityElement(children: .combine)
     }
 
     private var lecturerSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("PREDAVATELJ")
+            Eyebrow("PREDAVATELJ")
 
             Text(entry.lecturer)
-                .font(.system(size: 20, weight: .medium))
-                .foregroundStyle(.black)
+                .themeFont(.headline)
+                .foregroundStyle(Theme.Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, Theme.Space.page)
     }
 
     private var scheduleSection: some View {
-        let entryStart = timeRange(for: entry)?.start ?? 0
+        let entryStart = entry.hourRange?.start ?? 0
 
         return VStack(alignment: .leading, spacing: 0) {
             HStack {
-                sectionLabel("URNIK")
+                Eyebrow("URNIK")
 
                 Spacer()
 
                 Text(String(format: "%02d", slots.count))
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
-                    .foregroundStyle(Color(white: 0.6))
+                    .themeFont(.mono)
+                    .foregroundStyle(Theme.Palette.inkTertiary)
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, Theme.Space.page)
             .padding(.bottom, 10)
-            .rise(0.4)
+            .rise(0.25)
 
-            DrawHairline(delay: 0.45)
+            Hairline(delay: 0.3)
 
             ForEach(Array(slots.enumerated()), id: \.element.id) { index, slot in
                 let isCurrent = slot.entry.dayOfWeek == entry.dayOfWeek
@@ -226,9 +173,9 @@ struct ClassDetailView: View {
                     && entryStart < slot.end
 
                 scheduleRow(slot, isCurrent: isCurrent)
-                    .rise(0.5 + Double(index) * 0.08)
+                    .rise(0.3 + Double(index) * 0.05)
 
-                DrawHairline(delay: 0.55 + Double(index) * 0.08)
+                Hairline(delay: 0.35 + Double(index) * 0.05)
             }
         }
     }
@@ -238,17 +185,18 @@ struct ClassDetailView: View {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 8) {
                     Circle()
-                        .fill(isCurrent ? Color.black : Color.clear)
+                        .fill(isCurrent ? Theme.Palette.brand : Color.clear)
                         .frame(width: 6, height: 6)
 
                     Text(slot.entry.dayOfWeek.rawValue)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.black)
+                        .themeFont(.callout)
+                        .fontWeight(.medium)
+                        .foregroundStyle(Theme.Palette.ink)
                 }
 
                 Text(slot.entry.type)
-                    .font(.system(size: 14))
-                    .foregroundStyle(.black)
+                    .themeFont(.callout)
+                    .foregroundStyle(Theme.Palette.ink)
                     .lineLimit(1)
                     .padding(.leading, 14)
             }
@@ -256,66 +204,28 @@ struct ClassDetailView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(slot.entry.classroom)
-                    .font(.system(size: 14))
-                    .foregroundStyle(Color(white: 0.55))
+                    .themeFont(.callout)
+                    .foregroundStyle(Theme.Palette.inkSecondary)
                     .lineLimit(1)
 
                 HStack(alignment: .lastTextBaseline, spacing: 6) {
-                    Text(formatted(slot.start))
-                        .font(.system(size: 26, weight: .light))
+                    Text(TimeFormat.clock(slot.start))
+                        .themeFont(.numeralS)
                         .monospacedDigit()
-                        .foregroundStyle(.black)
+                        .foregroundStyle(Theme.Palette.ink)
 
-                    Text("– \(formatted(slot.end))")
-                        .font(.system(size: 13))
+                    Text("– \(TimeFormat.clock(slot.end))")
+                        .themeFont(.caption)
                         .monospacedDigit()
-                        .foregroundStyle(Color(white: 0.55))
+                        .foregroundStyle(Theme.Palette.inkSecondary)
                 }
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, Theme.Space.page)
         .padding(.vertical, 16)
-    }
-
-    private func sectionLabel(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 11, weight: .semibold))
-            .tracking(1.2)
-            .foregroundStyle(Color(white: 0.6))
-    }
-
-    private func formatted(_ value: Double) -> String {
-        let h = Int(value)
-        let m = Int(((value - Double(h)) * 60).rounded())
-        return String(format: "%02d:%02d", h, m)
-    }
-
-    private func timeRange(for entry: TimetableEntry) -> (start: Double, end: Double)? {
-        let nums = entry.time
-            .split(whereSeparator: { !$0.isNumber })
-            .compactMap { Double($0) }
-
-        var start: Double?
-        var end: Double?
-
-        if nums.count >= 4 {
-            start = nums[0] + nums[1] / 60
-            end = nums[2] + nums[3] / 60
-        } else if nums.count == 2 {
-            start = nums[0]
-            end = nums[1]
-        }
-
-        if start == nil, let hour = Int(entry.start.prefix(2)) {
-            start = Double(hour)
-        }
-
-        guard let start else { return nil }
-
-        let finalEnd = end.flatMap { $0 > start ? $0 : nil } ?? start + 1
-        return (start, finalEnd)
+        .accessibilityElement(children: .combine)
     }
 }

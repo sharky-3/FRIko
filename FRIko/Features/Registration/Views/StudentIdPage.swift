@@ -7,28 +7,29 @@ struct StudentIdPage: View {
 
     @FocusState private var isFocused: Bool
     @State private var caretOn = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let digitCount = 8
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            OnboardingPill(text: "2 / 3")
-                .reveal(0.1)
+            MetaTag("2 / 3")
+                .rise(0.1)
 
             TwoToneTitle(dark: "Tvoja ", light: "vpisna številka.")
                 .padding(.top, 20)
-                .reveal(0.2)
+                .rise(0.2)
 
             Text("Vpiši številko, s katero si vpisan na fakulteto.")
-                .font(.system(size: 15))
-                .foregroundStyle(Color(white: 0.45))
+                .themeFont(.body)
+                .foregroundStyle(Theme.Palette.inkSecondary)
                 .padding(.top, 10)
-                .reveal(0.3)
+                .rise(0.3)
 
             Spacer()
 
             VStack(alignment: .leading, spacing: 12) {
-                SectionLabel(text: "VPISNA ŠTEVILKA")
+                Eyebrow("VPISNA ŠTEVILKA")
 
                 HStack(spacing: 6) {
                     ForEach(0..<digitCount, id: \.self) { index in
@@ -39,24 +40,26 @@ struct StudentIdPage: View {
                 .contentShape(Rectangle())
                 .onTapGesture { isFocused = true }
             }
-            .reveal(0.45)
+            .rise(0.45)
 
             Spacer().frame(height: 32)
 
-            ContinueButton(
+            PrimaryButton(
                 title: buttonTitle,
                 enabled: data.isStudentIdValid,
                 action: onContinue
             )
-            .reveal(0.6)
+            .rise(0.6)
         }
         .padding(.horizontal, 24)
         .padding(.top, 16)
         .padding(.bottom, 16)
         .sensoryFeedback(.selection, trigger: data.studentId)
         .onAppear {
-            withAnimation(.easeInOut(duration: 0.55).repeatForever(autoreverses: true)) {
-                caretOn = false
+            if !reduceMotion {
+                withAnimation(.easeInOut(duration: 0.55).repeatForever(autoreverses: true)) {
+                    caretOn = false
+                }
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                 isFocused = true
@@ -83,24 +86,24 @@ struct StudentIdPage: View {
         let isActive = isFocused && index == min(data.studentId.count, digitCount - 1)
 
         return ZStack {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.white)
+            RoundedRectangle(cornerRadius: Theme.Radius.control - 2, style: .continuous)
+                .fill(Theme.Palette.canvas)
 
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: Theme.Radius.control - 2, style: .continuous)
                 .strokeBorder(
-                    isActive ? Color.black : Color.black.opacity(0.18),
+                    isActive ? Theme.Palette.accent : Theme.Palette.ink.opacity(0.2),
                     lineWidth: isActive ? 1.5 : 0.5
                 )
 
             if let digit {
                 Text(digit)
-                    .font(.system(size: 24, weight: .light))
+                    .themeFont(.numeralS)
                     .monospacedDigit()
-                    .foregroundStyle(.black)
+                    .foregroundStyle(Theme.Palette.ink)
                     .transition(.scale(scale: 0.5).combined(with: .opacity))
             } else if isActive {
-                Capsule()
-                    .fill(Color.black)
+                Rectangle()
+                    .fill(Theme.Palette.accent)
                     .frame(width: 1.5, height: 22)
                     .opacity(caretOn ? 1 : 0)
             }

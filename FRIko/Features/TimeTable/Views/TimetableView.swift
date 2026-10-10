@@ -1,61 +1,5 @@
 import SwiftUI
 
-private struct Rise: ViewModifier {
-    let delay: Double
-    @State private var shown = false
-
-    func body(content: Content) -> some View {
-        content
-            .opacity(shown ? 1 : 0)
-            .offset(y: shown ? 0 : 22)
-            .blur(radius: shown ? 0 : 6)
-            .onAppear {
-                withAnimation(.timingCurve(0.16, 1, 0.3, 1, duration: 0.9).delay(delay)) {
-                    shown = true
-                }
-            }
-    }
-}
-
-private extension View {
-    func rise(_ delay: Double = 0) -> some View {
-        modifier(Rise(delay: delay))
-    }
-}
-
-private struct PulseDot: View {
-    var color: Color = .black
-    var size: CGFloat = 6
-    @State private var pulse = false
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .fill(color.opacity(0.3))
-                .frame(width: size, height: size)
-                .scaleEffect(pulse ? 3 : 1)
-                .opacity(pulse ? 0 : 1)
-
-            Circle()
-                .fill(color)
-                .frame(width: size, height: size)
-        }
-        .onAppear {
-            withAnimation(.easeOut(duration: 1.8).repeatForever(autoreverses: false)) {
-                pulse = true
-            }
-        }
-    }
-}
-
-private struct RowPressStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .background(Color.black.opacity(configuration.isPressed ? 0.04 : 0))
-            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
-    }
-}
-
 struct TimetableView: View {
 
     @ObservedObject var viewModel: TimetableViewModel
@@ -67,12 +11,12 @@ struct TimetableView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.white.ignoresSafeArea()
+                Theme.Palette.canvas.ignoresSafeArea()
 
                 Group {
                     if viewModel.isLoading && viewModel.entries.isEmpty {
                         ProgressView("Nalaganje urnika...")
-                            .tint(.black)
+                            .tint(Theme.Palette.ink)
                     } else if let errorMessage = viewModel.errorMessage,
                               viewModel.entries.isEmpty {
                         errorView(errorMessage)
@@ -85,13 +29,16 @@ struct TimetableView: View {
             .refreshable { await viewModel.refresh() }
             .task { await viewModel.loadTimetable() }
         }
+        .tint(Theme.Palette.ink)
         .preferredColorScheme(.light)
     }
+
+    // MARK: - Content
 
     private var mainContentView: some View {
         let todayEntries = viewModel.entries
             .filter { $0.dayOfWeek == DayOfWeek.today() }
-            .sorted { (timeRange(for: $0)?.start ?? 0) < (timeRange(for: $1)?.start ?? 0) }
+            .sorted { ($0.hourRange?.start ?? 0) < ($1.hourRange?.start ?? 0) }
 
         return GeometryReader { proxy in
             ScrollView {
@@ -102,7 +49,7 @@ struct TimetableView: View {
 
                         hero(entries: todayEntries, date: context.date)
                             .padding(.top, 22)
-                            .rise(0.2)
+                            .rise(0.15)
 
                         Spacer(minLength: 36)
 
@@ -121,29 +68,24 @@ struct TimetableView: View {
 
     private func topRow(date: Date) -> some View {
         HStack {
-            Text(StudentStorage.shared.studentId ?? "-")
-                .font(.system(size: 12, weight: .medium, design: .monospaced))
-                .monospacedDigit()
-                .foregroundStyle(.white)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(Capsule().fill(Color(white: 0.1)))
+            MetaTag(StudentStorage.shared.studentId ?? "-")
 
             Spacer()
 
-            Text(date, format: .dateTime.weekday(.abbreviated).day().month(.abbreviated))
-                .textCase(.uppercase)
-                .font(.system(size: 12, weight: .medium, design: .monospaced))
-                .foregroundStyle(Color(white: 0.55))
+            MetaText(
+                date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated)).uppercased()
+            )
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, Theme.Space.page)
     }
 
+    // MARK: - Hero
+
     private func hero(entries: [TimetableEntry], date: Date) -> some View {
-        let now = minutes(of: date)
+        let now = TimeFormat.hours(of: date)
         let current = currentClass(in: entries, at: date)
         let entry = current ?? nextClass(in: entries, at: date)
-        let range = entry.flatMap { timeRange(for: $0) }
+        let range = entry?.hourRange
         let isLive = current != nil
 
         let progress: CGFloat = range.map {
@@ -154,14 +96,10 @@ struct TimetableView: View {
 
             HStack(spacing: 8) {
                 if isLive {
-                    PulseDot(color: .black, size: 6)
-                        .frame(width: 6, height: 6)
+                    PulseDot()
                 }
 
-                Text(label(isLive: isLive, hasEntry: entry != nil))
-                    .font(.system(size: 11, weight: .semibold))
-                    .tracking(1.2)
-                    .foregroundStyle(Color(white: 0.6))
+                Eyebrow(label(isLive: isLive, hasEntry: entry != nil))
 
                 Spacer()
             }
@@ -171,94 +109,71 @@ struct TimetableView: View {
 
                 HStack(alignment: .lastTextBaseline, spacing: 8) {
                     Text(c.value)
-                        .font(.system(size: 96, weight: .ultraLight))
+                        .themeFont(.numeralXL)
                         .monospacedDigit()
-                        .foregroundStyle(.black)
+                        .foregroundStyle(Theme.Palette.ink)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
+                        .contentTransition(.numericText())
+                        .animation(Motion.snap, value: c.value)
 
                     Text(c.unit)
-                        .font(.system(size: 20, weight: .light))
-                        .foregroundStyle(Color(white: 0.5))
+                        .themeFont(.unit)
+                        .foregroundStyle(Theme.Palette.inkSecondary)
                 }
-                .padding(.top, 24)
+                .padding(.top, 20)
 
-                Text(isLive ? "DO KONCA" : "DO ZAČETKA")
-                    .font(.system(size: 10, weight: .semibold))
-                    .tracking(1.2)
-                    .foregroundStyle(Color(white: 0.6))
+                Eyebrow(isLive ? "DO KONCA" : "DO ZAČETKA")
                     .padding(.top, 2)
 
-                Rectangle()
-                    .fill(Color.black.opacity(0.18))
-                    .frame(height: 0.5)
+                Hairline()
                     .padding(.vertical, 22)
 
                 Text(entry.subject)
-                    .font(.system(size: 28, weight: .bold, design: .serif))
-                    .foregroundStyle(.black)
+                    .themeFont(.title)
+                    .foregroundStyle(Theme.Palette.ink)
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text("\(entry.time) · \(entry.classroom) · \(entry.type)")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Color(white: 0.45))
+                    .themeFont(.callout)
+                    .foregroundStyle(Theme.Palette.inkSecondary)
                     .lineLimit(2)
                     .padding(.top, 8)
 
                 if isLive {
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            Rectangle()
-                                .fill(Color.black.opacity(0.12))
-                                .frame(height: 1)
-
-                            Rectangle()
-                                .fill(Color.black)
-                                .frame(width: geo.size.width * progress, height: 1)
-                        }
-                        .frame(maxHeight: .infinity)
-                    }
-                    .frame(height: 6)
-                    .padding(.top, 20)
-                    .animation(.easeInOut(duration: 0.8), value: progress)
+                    progressLine(progress)
+                        .padding(.top, 20)
                 }
             } else {
                 Text(entries.isEmpty ? "Danes nimaš predavanj." : "Za danes je konec.")
-                    .font(.system(size: 36, weight: .bold, design: .serif))
-                    .foregroundStyle(.black)
+                    .themeFont(.display)
+                    .foregroundStyle(Theme.Palette.ink)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 24)
             }
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, Theme.Space.page)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 
-    private var heroBackground: some View {
-        let shape = RoundedRectangle(cornerRadius: 32, style: .continuous)
+    private func progressLine(_ progress: CGFloat) -> some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Rectangle()
+                    .fill(Theme.Palette.hairline)
+                    .frame(height: 1)
 
-        return shape
-            .fill(Color(white: 0.07))
-            .overlay(
-                RadialGradient(
-                    colors: [Color.white.opacity(0.14), .clear],
-                    center: .topTrailing,
-                    startRadius: 0,
-                    endRadius: 280
-                )
-                .clipShape(shape)
-            )
-            .overlay(
-                shape.strokeBorder(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.28), Color.white.opacity(0.03)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 0.8
-                )
-            )
+                Rectangle()
+                    .fill(Theme.Palette.brand)
+                    .frame(width: geo.size.width * progress, height: 2)
+            }
+            .frame(maxHeight: .infinity)
+        }
+        .frame(height: 6)
+        .animation(.easeInOut(duration: 0.8), value: progress)
+        .accessibilityHidden(true)
     }
 
     private func label(isLive: Bool, hasEntry: Bool) -> String {
@@ -279,30 +194,29 @@ struct TimetableView: View {
         }
         return ("\(mins)", "min")
     }
-    
+
+    // MARK: - Timeline
+
     private func timeline(entries: [TimetableEntry], date: Date) -> some View {
-        let now = minutes(of: date)
+        let now = TimeFormat.hours(of: date)
         let current = currentClass(in: entries, at: date)
 
         return VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("DANES")
-                    .font(.system(size: 11, weight: .semibold))
-                    .tracking(1.2)
-                    .foregroundStyle(Color(white: 0.6))
+                Eyebrow("DANES")
 
                 Spacer()
 
                 Text(String(format: "%02d", entries.count))
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
-                    .foregroundStyle(Color(white: 0.6))
+                    .themeFont(.mono)
+                    .foregroundStyle(Theme.Palette.inkTertiary)
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, Theme.Space.page)
             .padding(.bottom, 6)
-            .rise(0.4)
+            .rise(0.3)
 
             ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
-                let range = timeRange(for: entry)
+                let range = entry.hourRange
                 let isLive = entry.id == current?.id
                 let isPast = (range?.end ?? 0) <= now
 
@@ -319,7 +233,7 @@ struct TimetableView: View {
                     )
                 }
                 .buttonStyle(RowPressStyle())
-                .rise(0.5 + Double(index) * 0.08)
+                .rise(0.35 + Double(index) * 0.05)
             }
         }
     }
@@ -335,14 +249,14 @@ struct TimetableView: View {
         HStack(alignment: .top, spacing: 14) {
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(range.map { formatted($0.start) } ?? entry.time)
-                    .font(.system(size: 14, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.black)
+                Text(range.map { TimeFormat.clock($0.start) } ?? entry.time)
+                    .themeFont(.monoStrong)
+                    .foregroundStyle(Theme.Palette.ink)
 
                 if let range {
-                    Text(formatted(range.end))
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundStyle(Color(white: 0.6))
+                    Text(TimeFormat.clock(range.end))
+                        .themeFont(.mono)
+                        .foregroundStyle(Theme.Palette.inkTertiary)
                 }
             }
             .frame(width: timeWidth, alignment: .leading)
@@ -351,31 +265,34 @@ struct TimetableView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(entry.subject)
-                    .font(.system(size: 16, weight: isLive ? .semibold : .medium))
-                    .foregroundStyle(.black)
+                    .themeFont(isLive ? .bodyStrong : .body)
+                    .fontWeight(isLive ? .semibold : .medium)
+                    .foregroundStyle(Theme.Palette.ink)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
 
                 Text("\(entry.type) · \(entry.classroom)")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color(white: 0.5))
+                    .themeFont(.caption)
+                    .foregroundStyle(Theme.Palette.inkSecondary)
                     .lineLimit(1)
             }
 
             Spacer(minLength: 8)
 
-            Image(systemName: "arrow.up.right")
-                .font(.system(size: 11, weight: .regular))
-                .foregroundStyle(Color(white: 0.6))
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.Palette.inkTertiary)
                 .padding(.top, 4)
+                .accessibilityHidden(true)
         }
         .padding(.vertical, 16)
         .background(alignment: .topLeading) {
             timelineMark(isFirst: isFirst, isLast: isLast, isLive: isLive, isPast: isPast)
         }
-        .padding(.horizontal, 20)
-        .opacity(isPast ? 0.4 : 1)
+        .padding(.horizontal, Theme.Space.page)
+        .opacity(isPast ? 0.5 : 1)
         .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 
     private func timelineMark(isFirst: Bool, isLast: Bool, isLive: Bool, isPast: Bool) -> some View {
@@ -385,7 +302,7 @@ struct TimetableView: View {
         return ZStack(alignment: .topLeading) {
             if !(isFirst && isLast) {
                 Rectangle()
-                    .fill(isPast ? Color.black.opacity(0.7) : Color.black.opacity(0.15))
+                    .fill(isPast ? Theme.Palette.ink.opacity(0.7) : Theme.Palette.hairline)
                     .frame(width: 1, height: isLast ? centerY : nil)
                     .padding(.top, isFirst ? centerY : 0)
                     .padding(.leading, centerX - 0.5)
@@ -401,94 +318,58 @@ struct TimetableView: View {
     @ViewBuilder
     private func dot(isLive: Bool, isPast: Bool) -> some View {
         if isLive {
-            PulseDot(color: .black, size: dotSize)
+            PulseDot(size: dotSize)
         } else if isPast {
-            Circle().fill(Color.black)
+            Circle().fill(Theme.Palette.ink)
         } else {
             Circle()
-                .fill(Color.white)
-                .overlay(Circle().stroke(Color.black.opacity(0.4), lineWidth: 1))
+                .fill(Theme.Palette.canvas)
+                .overlay(Circle().stroke(Theme.Palette.ink.opacity(0.4), lineWidth: 1))
         }
     }
 
-    private func minutes(of date: Date) -> Double {
-        let c = Calendar.current.dateComponents([.hour, .minute], from: date)
-        return Double(c.hour ?? 0) + Double(c.minute ?? 0) / 60
-    }
-
-    private func formatted(_ value: Double) -> String {
-        let h = Int(value)
-        let m = Int(((value - Double(h)) * 60).rounded())
-        return String(format: "%02d:%02d", h, m)
-    }
+    // MARK: - Lookups
 
     private func currentClass(in entries: [TimetableEntry], at date: Date) -> TimetableEntry? {
-        let now = minutes(of: date)
+        let now = TimeFormat.hours(of: date)
         return entries.first {
-            guard let r = timeRange(for: $0) else { return false }
+            guard let r = $0.hourRange else { return false }
             return now >= r.start && now < r.end
         }
     }
 
     private func nextClass(in entries: [TimetableEntry], at date: Date) -> TimetableEntry? {
-        let now = minutes(of: date)
+        let now = TimeFormat.hours(of: date)
         return entries.first {
-            guard let r = timeRange(for: $0) else { return false }
+            guard let r = $0.hourRange else { return false }
             return r.start > now
         }
     }
 
-    private func timeRange(for entry: TimetableEntry) -> (start: Double, end: Double)? {
-        let nums = entry.time
-            .split(whereSeparator: { !$0.isNumber })
-            .compactMap { Double($0) }
-
-        var start: Double?
-        var end: Double?
-
-        if nums.count >= 4 {
-            start = nums[0] + nums[1] / 60
-            end = nums[2] + nums[3] / 60
-        } else if nums.count == 2 {
-            start = nums[0]
-            end = nums[1]
-        }
-
-        if start == nil, let hour = Int(entry.start.prefix(2)) {
-            start = Double(hour)
-        }
-
-        guard let start else { return nil }
-
-        let finalEnd = end.flatMap { $0 > start ? $0 : nil } ?? start + 1
-        return (start, finalEnd)
-    }
+    // MARK: - Error
 
     private func errorView(_ message: String) -> some View {
         VStack(spacing: 14) {
             Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 28, weight: .light))
-                .foregroundStyle(.black)
+                .font(.title.weight(.light))
+                .foregroundStyle(Theme.Palette.ink)
+                .accessibilityHidden(true)
 
             Text("Napaka")
-                .font(.system(size: 28, weight: .bold, design: .serif))
-                .foregroundStyle(.black)
+                .themeFont(.title)
+                .foregroundStyle(Theme.Palette.ink)
 
             Text(message)
-                .font(.system(size: 14))
-                .foregroundStyle(Color(white: 0.5))
+                .themeFont(.callout)
+                .foregroundStyle(Theme.Palette.inkSecondary)
                 .multilineTextAlignment(.center)
 
-            Button("Poskusi znova") {
+            PrimaryButton(title: "Poskusi znova") {
                 Task { await viewModel.loadTimetable() }
             }
-            .font(.system(size: 14, weight: .medium))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 22)
-            .padding(.vertical, 12)
-            .background(Capsule().fill(Color(white: 0.1)))
+            .frame(maxWidth: 280)
             .padding(.top, 6)
         }
-        .padding(24)
+        .padding(Theme.Space.l)
     }
 }

@@ -21,40 +21,40 @@ struct SchoolPage: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            OnboardingPill(text: "1 / 3")
-                .reveal(0.1)
+            MetaTag("1 / 3")
+                .rise(0.1)
 
             TwoToneTitle(dark: "Kje ", light: "študiraš?")
                 .padding(.top, 20)
-                .reveal(0.2)
+                .rise(0.2)
 
             Text("Izberi svojo fakulteto.")
-                .font(.system(size: 15))
-                .foregroundStyle(Color(white: 0.45))
+                .themeFont(.body)
+                .foregroundStyle(Theme.Palette.inkSecondary)
                 .padding(.top, 10)
-                .reveal(0.3)
+                .rise(0.3)
 
             Spacer()
 
             VStack(spacing: 0) {
-                Hairline(delay: 0.4)
+                Hairline(delay: 0.25)
 
                 ForEach(schools.indices, id: \.self) { i in
                     row(schools[i])
-                        .reveal(0.45 + Double(i) * 0.1)
+                        .rise(0.3 + Double(i) * 0.06)
 
-                    Hairline(delay: 0.55 + Double(i) * 0.1)
+                    Hairline(delay: 0.35 + Double(i) * 0.06)
                 }
             }
 
             Spacer().frame(height: 32)
 
-            ContinueButton(
+            PrimaryButton(
                 title: buttonTitle,
                 enabled: !data.school.isEmpty,
                 action: onContinue
             )
-            .reveal(0.9)
+            .rise(0.55)
         }
         .padding(.horizontal, 24)
         .padding(.top, 16)
@@ -67,7 +67,7 @@ struct SchoolPage: View {
 
         return Button {
             guard school.available else { return }
-            withAnimation(.snappy(duration: 0.3)) {
+            withAnimation(Motion.snap) {
                 data.school = school.name
             }
         } label: {
@@ -75,23 +75,26 @@ struct SchoolPage: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
                         Text(school.code)
-                            .font(.system(size: 28, weight: .light))
-                            .foregroundStyle(.black)
+                            .themeFont(.numeralS)
+                            .foregroundStyle(Theme.Palette.ink)
 
                         if !school.available {
                             Text("KMALU")
-                                .font(.system(size: 9, weight: .bold))
+                                .font(.system(size: 11, weight: .semibold))
                                 .tracking(0.6)
-                                .foregroundStyle(Color(white: 0.45))
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 3)
-                                .overlay(Capsule().stroke(Color.black.opacity(0.25), lineWidth: 0.5))
+                                .foregroundStyle(Theme.Palette.inkSecondary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                        .stroke(Theme.Palette.ink.opacity(0.25), lineWidth: 0.5)
+                                )
                         }
                     }
 
                     Text(school.name)
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color(white: 0.5))
+                        .themeFont(.callout)
+                        .foregroundStyle(Theme.Palette.inkSecondary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                 }
@@ -100,12 +103,12 @@ struct SchoolPage: View {
 
                 ZStack {
                     Circle()
-                        .stroke(isSelected ? Color.black : Color.black.opacity(0.25), lineWidth: 1)
+                        .stroke(isSelected ? Theme.Palette.accent : Theme.Palette.ink.opacity(0.3), lineWidth: 1)
                         .frame(width: 24, height: 24)
 
                     if isSelected {
                         Circle()
-                            .fill(Color.black)
+                            .fill(Theme.Palette.accent)
                             .frame(width: 14, height: 14)
                             .transition(.scale)
                     }
@@ -115,7 +118,8 @@ struct SchoolPage: View {
             .opacity(school.available ? 1 : 0.4)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(RowPressStyle())
         .disabled(!school.available)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

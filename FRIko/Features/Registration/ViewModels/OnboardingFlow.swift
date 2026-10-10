@@ -8,10 +8,11 @@ struct OnboardingFlow: View {
     @StateObject private var data = OnboardingData()
     @State private var step: OnboardingStep = .welcome
     @State private var isEditing = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
-            Color.white.ignoresSafeArea()
+            Theme.Palette.canvas.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 topBar
@@ -21,7 +22,9 @@ struct OnboardingFlow: View {
                         .id(step)
                         .transition(
                             .asymmetric(
-                                insertion: .opacity.combined(with: .offset(y: 16)),
+                                insertion: reduceMotion
+                                    ? .opacity
+                                    : .opacity.combined(with: .offset(y: 12)),
                                 removal: .opacity
                             )
                         )
@@ -31,7 +34,7 @@ struct OnboardingFlow: View {
             }
         }
         .preferredColorScheme(.light)
-        .tint(.black)
+        .tint(Theme.Palette.accent)
     }
     
     @ViewBuilder
@@ -58,34 +61,42 @@ struct OnboardingFlow: View {
         HStack(spacing: 12) {
             Button(action: back) {
                 Image(systemName: "arrow.left")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.black)
-                    .frame(width: 38, height: 38)
-                    .overlay(Circle().stroke(Color.black.opacity(0.18), lineWidth: 0.5))
-                    .contentShape(Circle())
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(Theme.Palette.ink)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PressableStyle())
+            .accessibilityLabel("Nazaj")
             .opacity(step == .welcome ? 0 : 1)
             .disabled(step == .welcome)
+            .padding(.leading, -12)
 
             Spacer()
 
             HStack(spacing: 4) {
                 ForEach(OnboardingStep.allCases, id: \.rawValue) { s in
-                    Capsule()
-                        .fill(s.rawValue <= step.rawValue ? Color.black : Color.black.opacity(0.12))
+                    Rectangle()
+                        .fill(fill(for: s))
                         .frame(width: s == step ? 22 : 8, height: 3)
                 }
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Korak \(step.rawValue + 1) od \(OnboardingStep.allCases.count)")
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, Theme.Space.l)
         .padding(.top, 8)
-        .frame(height: 50)
-        .animation(.snappy(duration: 0.35), value: step)
+        .frame(height: 52)
+        .animation(Motion.snap, value: step)
+    }
+
+    private func fill(for s: OnboardingStep) -> Color {
+        if s == step { return Theme.Palette.accent }
+        return s.rawValue < step.rawValue ? Theme.Palette.ink : Theme.Palette.ink.opacity(0.12)
     }
 
     private func go(to newStep: OnboardingStep) {
-        withAnimation(.easeInOut(duration: 0.4)) {
+        withAnimation(reduceMotion ? Motion.fade : .smooth(duration: 0.4)) {
             step = newStep
         }
     }

@@ -12,51 +12,40 @@ struct CalendarURLPage: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            OnboardingPill(text: "3 / 3")
-                .reveal(0.1)
+            MetaTag("3 / 3")
+                .rise(0.1)
 
             TwoToneTitle(dark: "Povezava ", light: "do urnika.")
                 .padding(.top, 20)
-                .reveal(0.2)
+                .rise(0.2)
 
             Text("Prilepi povezavo do svojega urnika na urnik.fri.uni-lj.si.")
-                .font(.system(size: 15))
-                .foregroundStyle(Color(white: 0.45))
+                .themeFont(.body)
+                .foregroundStyle(Theme.Palette.inkSecondary)
                 .lineSpacing(3)
                 .padding(.top, 10)
-                .reveal(0.3)
+                .rise(0.3)
 
             Spacer()
 
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    SectionLabel(text: "POVEZAVA")
+                    Eyebrow("POVEZAVA")
 
                     Spacer()
 
-                    Button(action: paste) {
-                        HStack(spacing: 5) {
-                            Image(systemName: "doc.on.clipboard")
-                                .font(.system(size: 11, weight: .medium))
-                            Text("Prilepi")
-                                .font(.system(size: 12, weight: .medium))
-                        }
-                        .foregroundStyle(.black)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .overlay(Capsule().stroke(Color.black.opacity(0.25), lineWidth: 0.5))
-                    }
-                    .buttonStyle(OnboardingPressStyle())
+                    ChipButton(title: "Prilepi", systemImage: "doc.on.clipboard", action: paste)
                 }
 
                 HStack(spacing: 10) {
                     TextField(
                         "",
                         text: $data.timetableURL,
-                        prompt: Text("https://urnik.fri.uni-lj.si/…").foregroundColor(Color(white: 0.7))
+                        prompt: Text("https://urnik.fri.uni-lj.si/…").foregroundColor(Theme.Palette.inkTertiary)
                     )
-                    .font(.system(size: 17))
-                    .foregroundStyle(.black)
+                    .themeFont(.headline)
+                    .fontWeight(.regular)
+                    .foregroundStyle(Theme.Palette.ink)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .keyboardType(.URL)
@@ -66,33 +55,34 @@ struct CalendarURLPage: View {
 
                     if data.isURLValid {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.black)
+                            .font(.callout.weight(.semibold))
+                            .foregroundStyle(Theme.Palette.accent)
+                            .accessibilityLabel("Povezava je veljavna")
                             .transition(.scale.combined(with: .opacity))
                     }
                 }
                 .padding(.vertical, 12)
                 .overlay(alignment: .bottom) {
                     Rectangle()
-                        .fill(isFocused ? Color.black : Color.black.opacity(0.18))
+                        .fill(isFocused ? Theme.Palette.accent : Theme.Palette.hairline)
                         .frame(height: isFocused ? 1.5 : 0.5)
                 }
 
                 Text("Primer: \(exampleURL)")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Color(white: 0.55))
+                    .themeFont(.caption)
+                    .foregroundStyle(Theme.Palette.inkTertiary)
                     .lineLimit(2)
             }
-            .reveal(0.45)
+            .rise(0.45)
 
             Spacer().frame(height: 32)
 
-            ContinueButton(
+            PrimaryButton(
                 title: buttonTitle,
                 enabled: data.isURLValid,
                 action: onContinue
             )
-            .reveal(0.6)
+            .rise(0.6)
         }
         .padding(.horizontal, 24)
         .padding(.top, 16)

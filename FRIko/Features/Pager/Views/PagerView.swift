@@ -13,6 +13,7 @@ struct PagerView: View {
     @State private var selectedTab: Int? = 0
     @State private var progress = PagerProgress()
     @State private var ready = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let pageCount = 3
 
@@ -30,14 +31,8 @@ struct PagerView: View {
                         .id(index)
                         .scrollTransition(axis: .horizontal) { content, phase in
                             content
-                                .scaleEffect(1 - abs(phase.value) * 0.16)
-                                .opacity(1 - abs(phase.value) * 0.6)
-                                .blur(radius: abs(phase.value) * 6)
-                                .rotation3DEffect(
-                                    .degrees(phase.value * -8),
-                                    axis: (x: 0, y: 1, z: 0),
-                                    perspective: 0.7
-                                )
+                                .scaleEffect(reduceMotion ? 1 : 1 - abs(phase.value) * 0.08)
+                                .opacity(1 - abs(phase.value) * 0.5)
                         }
                     }
                 }
@@ -61,8 +56,8 @@ struct PagerView: View {
         .onAppear {
             selectedTab = 1
             Task {
-                try? await Task.sleep(nanoseconds: 150_000_000)
-                withAnimation(.easeOut(duration: 0.35)) {
+                try? await Task.sleep(nanoseconds: 100_000_000)
+                withAnimation(.easeOut(duration: 0.25)) {
                     ready = true
                 }
             }
@@ -93,7 +88,7 @@ private struct PageContainer<Content: View>: View {
 
             content()
                 .frame(width: proxy.size.width, height: proxy.size.height)
-                .clipShape(RoundedRectangle(cornerRadius: amount * 44, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: amount * 28, style: .continuous))
                 .onChange(of: minX, initial: true) { _, newValue in
                     if index == 0 {
                         progress.position = -newValue / width
@@ -109,6 +104,7 @@ private struct PageIndicator: View {
     @Binding var selection: Int?
 
     private let bottomGap: CGFloat = 22
+    fileprivate static let names = ["Nastavitve", "Danes", "Teden"]
 
     var body: some View {
         let position = progress.position
@@ -122,10 +118,12 @@ private struct PageIndicator: View {
                     .opacity(0.3 + 0.7 * activity)
                     .contentShape(Rectangle().inset(by: -12))
                     .onTapGesture {
-                        withAnimation(.snappy(duration: 0.35)) {
+                        withAnimation(Motion.snap) {
                             selection = index
                         }
                     }
+                    .accessibilityLabel(PageIndicator.names[index])
+                    .accessibilityAddTraits(.isButton)
             }
         }
         .foregroundStyle(.white)
